@@ -7,6 +7,7 @@ use App\Livewire\Reports;
 use App\Models\Product;
 use App\Models\ProductionLot;
 use App\Models\RawMaterial;
+use App\Models\User;
 use App\Services\ProductionService;
 use App\Services\SalesService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -16,6 +17,23 @@ use Tests\TestCase;
 class InventoryWorkflowTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $_ENV['SEED_USER_PASSWORD'] = 'testing-seed-password';
+        $_SERVER['SEED_USER_PASSWORD'] = 'testing-seed-password';
+        putenv('SEED_USER_PASSWORD=testing-seed-password');
+    }
+
+    protected function tearDown(): void
+    {
+        unset($_ENV['SEED_USER_PASSWORD'], $_SERVER['SEED_USER_PASSWORD']);
+        putenv('SEED_USER_PASSWORD');
+
+        parent::tearDown();
+    }
 
     public function test_production_consumes_recipe_materials_and_creates_stock(): void
     {
@@ -96,6 +114,7 @@ class InventoryWorkflowTest extends TestCase
     public function test_all_operational_pages_render_with_seed_data(): void
     {
         $this->seed();
+        $this->actingAs(User::where('email', 'makent3@gmail.com')->firstOrFail());
 
         foreach (['/', '/materias-primas', '/productos', '/lotes', '/ventas', '/reportes'] as $uri) {
             $this->get($uri)->assertOk();
