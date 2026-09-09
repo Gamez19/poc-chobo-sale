@@ -15,18 +15,20 @@
                     <p>Precios y existencias actuales</p>
                 </div>
             </div>
+            <div class="panel-body" style="padding-bottom:0">
+                <div class="search-box">
+                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                    <input type="search" class="input" wire:model.live.debounce.300ms="search" placeholder="Buscar producto o variante…" aria-label="Buscar producto o variante">
+                </div>
+            </div>
             <form class="panel-body" wire:submit="recordSale">
-                @php
-                    $sellableVariants = $variants->filter(fn ($variant) => (int) ($variant->available_stock ?? 0) > 0);
-                @endphp
-
                 @if ($lastSaleNumber !== '')
                     <div class="toast-success" role="status" style="margin-bottom:16px">
                         Venta {{ $lastSaleNumber }} registrada correctamente.
                     </div>
                 @endif
 
-                @if ($sellableVariants->isEmpty())
+                @if ($variants->isEmpty())
                     <div class="empty-state">
                         <strong>Todavía no hay existencias para vender</strong>
                         <p>
@@ -37,10 +39,15 @@
                             Las cantidades se habilitan cuando el lote tenga unidades disponibles.
                         </p>
                     </div>
+                @elseif ($visibleVariants->isEmpty())
+                    <div class="empty-state">
+                        <strong>No encontramos productos con ese nombre</strong>
+                        <p>Revisá la búsqueda o limpiala para ver todo el stock disponible.</p>
+                    </div>
                 @endif
 
                 <div class="sale-grid">
-                    @foreach ($variants as $variant)
+                    @foreach ($visibleVariants as $variant)
                         @php
                             $quantity = (int) ($quantities[$variant->id] ?? 0);
                             $available = (int) ($variant->available_stock ?? 0);
@@ -58,8 +65,7 @@
                                 <input id="sale-qty-{{ $variant->id }}"
                                        type="number" min="0" max="{{ $available }}" step="1"
                                        class="input"
-                                       wire:model.blur="quantities.{{ $variant->id }}"
-                                       @disabled($available === 0)>
+                                       wire:model.live.debounce.400ms="quantities.{{ $variant->id }}">
                                 @error('quantities.'.$variant->id) <span class="field-error">{{ $message }}</span> @enderror
                             </div>
                             <div class="sale-subtotal">
@@ -85,7 +91,7 @@
                     <div style="margin-right:auto">
                         <span class="field-hint">Total a cobrar</span>
                         <strong style="display:block;font:700 1.45rem Georgia,serif;margin-top:4px">
-                            {{ \App\Support\Money::format($variants->sum(fn ($variant) => $variant->price_cents * (int) ($quantities[$variant->id] ?? 0))) }}
+                            {{ \App\Support\Money::format($totalCents) }}
                         </strong>
                     </div>
                     <button class="btn btn-primary" type="submit" wire:loading.attr="disabled">
