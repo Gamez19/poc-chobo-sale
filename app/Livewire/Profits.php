@@ -110,13 +110,17 @@ class Profits extends Component
             ->sortByDesc('profit_cents')
             ->values();
 
+        $realizedRevenueCents = (int) $realizedRows->sum('revenue_cents');
+        $realizedProfitCents = (int) $realizedRows->sum('profit_cents');
+
         return view('livewire.profits', [
             'lots' => $lots,
             'realizedRows' => $realizedRows,
             'projectedRows' => $projectedRows,
-            'realizedRevenueCents' => $realizedRows->sum('revenue_cents'),
+            'realizedRevenueCents' => $realizedRevenueCents,
             'realizedCostCents' => $realizedRows->sum('cost_cents'),
-            'realizedProfitCents' => $realizedRows->sum('profit_cents'),
+            'realizedProfitCents' => $realizedProfitCents,
+            'realizedMarginPercent' => $this->marginPercent($realizedProfitCents, $realizedRevenueCents),
             'projectedRevenueCents' => $projectedRows->sum('revenue_cents'),
             'projectedCostCents' => $projectedRows->sum('cost_cents'),
             'projectedProfitCents' => $projectedRows->sum('profit_cents'),
@@ -124,7 +128,19 @@ class Profits extends Component
     }
 
     /**
-     * @return array<string, Collection|int>
+     * Realized profit as a percentage of realized revenue, zero-safe.
+     */
+    private function marginPercent(int $profitCents, int $revenueCents): string
+    {
+        if ($revenueCents === 0) {
+            return number_format(0, 1);
+        }
+
+        return number_format($profitCents / $revenueCents * 100, 1);
+    }
+
+    /**
+     * @return array<string, Collection|int|string>
      */
     private function emptyReport(Collection $lots): array
     {
@@ -135,6 +151,7 @@ class Profits extends Component
             'realizedRevenueCents' => 0,
             'realizedCostCents' => 0,
             'realizedProfitCents' => 0,
+            'realizedMarginPercent' => $this->marginPercent(0, 0),
             'projectedRevenueCents' => 0,
             'projectedCostCents' => 0,
             'projectedProfitCents' => 0,

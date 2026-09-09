@@ -60,8 +60,21 @@ class ProfitsTest extends TestCase
             ->assertSee('Ganancia proyectada')
             ->assertSee('C$ 44.00')
             ->assertSee('C$ 66.00')
-            ->assertSee('C$ 110.00')
+            ->assertSee('Margen real')
+            ->assertSee('55.0 %')
+            ->assertDontSee('Ganancia combinada')
+            ->assertDontSee('C$ 110.00')
             ->assertSee('LOTE-PROFIT-001');
+    }
+
+    public function test_realized_margin_is_zero_when_there_are_no_realized_sales(): void
+    {
+        Livewire::test(Profits::class)
+            ->set('dateFrom', today()->format('Y-m-d'))
+            ->set('dateTo', today()->format('Y-m-d'))
+            ->assertSee('Margen real')
+            ->assertSee('0.0 %')
+            ->assertDontSee('Ganancia combinada');
     }
 
     public function test_profit_module_returns_empty_results_for_invalid_dates(): void
