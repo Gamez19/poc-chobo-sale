@@ -20,7 +20,7 @@ class AuthenticationTest extends TestCase
             ->assertOk()
             ->assertSeeVolt('pages.auth.login')
             ->assertSee('data-theme="cacao"', false)
-            ->assertSee('images/chocobanano.svg', false);
+            ->assertSee('images/chocobanano.png', false);
     }
 
     public function test_users_can_authenticate_using_the_login_screen(): void

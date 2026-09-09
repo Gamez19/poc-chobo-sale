@@ -19,7 +19,7 @@
             <section class="login-visual" aria-labelledby="login-brand-title">
                 <a class="login-brand" href="{{ route('login') }}" wire:navigate>
                     <span class="login-brand-mark">
-                        <img src="{{ asset('images/chocobanano.svg') }}" alt="" width="54" height="54">
+                        <img src="{{ asset('images/chocobanano.png') }}" alt="" width="54" height="54">
                     </span>
                     <span>
                         <strong>Cacao Control</strong>
@@ -45,7 +45,7 @@
             <section class="login-panel" aria-label="Acceso a Cacao Control">
                 <div class="login-form-wrap">
                     <div class="login-mobile-brand">
-                        <img src="{{ asset('images/chocobanano.svg') }}" alt="Chocobanano" width="64" height="64">
+                        <img src="{{ asset('images/chocobanano.png') }}" alt="Chocobanano" width="64" height="64">
                         <span>Cacao Control</span>
                     </div>
 

@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Control de inventario, lotes y ventas">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <title>{{ $title ?? 'Cacao Control' }} · Cacao Control</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
@@ -58,10 +59,10 @@
                                     <svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>
                                     @break
                                 @case('coins')
-                                    <svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="4"/><path d="M8 4v8M4 8h8"/><path d="M13 9.5a4 4 0 1 1-1 7.8"/><path d="M16 13h4M16 17h3"/></svg>
+                                    <x-heroicon-o-banknotes />
                                     @break
                                 @case('settings')
-                                    <svg viewBox="0 0 24 24"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="m19.4 15 .1.1a2 2 0 1 1-2.8 2.8l-.1-.1a2 2 0 0 0-3.4 1.4v.2a2 2 0 1 1-4 0v-.2a2 2 0 0 0-3.4-1.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A2 2 0 0 0 3.7 12a2 2 0 0 0-.7-1.5l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A2 2 0 0 0 9.2 6.3h.2a2 2 0 0 0 1.6-2v-.2a2 2 0 1 1 4 0v.2a2 2 0 0 0 1.6 2h.2a2 2 0 0 0 1.4-.6l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a2 2 0 0 0-1.4 3.4v.2a2 2 0 0 0 2 1.6h.2a2 2 0 1 1 0 4h-.2a2 2 0 0 0-2 1.6Z"/></svg>
+                                    <x-heroicon-o-cog-6-tooth />
                             @endswitch
                         </span>
                         {{ $item['label'] }}
