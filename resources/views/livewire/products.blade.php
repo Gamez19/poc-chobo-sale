@@ -54,14 +54,18 @@
                                 <option value="{{ $product->id }}">{{ $product->name }}</option>
                             @endforeach
                         </select>
+                        @error('newVariantProductId') <span class="field-error">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
                         <label for="variant-name">Categoría</label>
                         <input id="variant-name" class="input" wire:model="newVariantName" placeholder="Ej. Maní">
+                        @error('newVariantName') <span class="field-error">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
                         <label for="variant-sku">SKU</label>
                         <input id="variant-sku" class="input" wire:model="newVariantSku" placeholder="CHO-MANI">
+                        <span class="field-hint">Si lo dejas vacío se genera automáticamente con el prefijo CHO- y el nombre del producto.</span>
+                        @error('newVariantSku') <span class="field-error">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
                         <label for="variant-price">Precio</label>
@@ -69,10 +73,9 @@
                             <span>C$</span>
                             <input id="variant-price" type="number" min="0.01" step="0.01" class="input" wire:model="newVariantPrice" placeholder="20.00">
                         </div>
+                        @error('newVariantPrice') <span class="field-error">{{ $message }}</span> @enderror
                     </div>
                 </div>
-                @error('newVariantName') <span class="field-error">{{ $message }}</span> @enderror
-                @error('newVariantSku') <span class="field-error">{{ $message }}</span> @enderror
                 <div class="form-actions"><button class="btn btn-primary" type="submit">Agregar variante</button></div>
             </form>
         </section>

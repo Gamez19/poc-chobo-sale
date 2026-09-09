@@ -318,6 +318,60 @@ class ProductsTest extends TestCase
         ]);
     }
 
+    public function test_create_variant_generates_the_sku_from_the_product_name_when_left_blank(): void
+    {
+        $product = $this->makeProduct('Chocobanano Especial', 'chocobanano-especial');
+
+        Livewire::test(Products::class)
+            ->set('newVariantProductId', $product->id)
+            ->set('newVariantName', 'Maní')
+            ->set('newVariantSku', '   ')
+            ->set('newVariantPrice', '20.00')
+            ->call('createVariant')
+            ->assertHasNoErrors()
+            ->assertSet('statusMessage', 'Variante agregada correctamente.');
+
+        $this->assertDatabaseHas('product_variants', [
+            'product_id' => $product->id,
+            'name' => 'Maní',
+            'sku' => 'CHO-CHOCOBANANO-ESPECIAL',
+        ]);
+    }
+
+    public function test_create_variant_keeps_a_manually_entered_sku(): void
+    {
+        $product = $this->makeProduct();
+
+        Livewire::test(Products::class)
+            ->set('newVariantProductId', $product->id)
+            ->set('newVariantName', 'Maní')
+            ->set('newVariantSku', '  cho-mani-especial  ')
+            ->set('newVariantPrice', '20.00')
+            ->call('createVariant')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('product_variants', [
+            'product_id' => $product->id,
+            'sku' => 'CHO-MANI-ESPECIAL',
+        ]);
+    }
+
+    public function test_create_variant_shows_the_spanish_required_message_for_the_missing_category(): void
+    {
+        $product = $this->makeProduct();
+
+        Livewire::test(Products::class)
+            ->set('newVariantProductId', $product->id)
+            ->set('newVariantName', '   ')
+            ->set('newVariantPrice', '20.00')
+            ->call('createVariant')
+            ->assertHasErrors(['newVariantName' => 'required'])
+            ->assertSee('El campo categoría de la variante es obligatorio.')
+            ->assertDontSee('validation.required');
+
+        $this->assertSame(0, ProductVariant::count());
+    }
+
     public function test_create_variant_rejects_duplicate_name_within_the_same_product(): void
     {
         $product = $this->makeProduct();

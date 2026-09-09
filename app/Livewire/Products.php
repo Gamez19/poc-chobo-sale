@@ -18,6 +18,10 @@ use Livewire\Component;
 #[Title('Productos y precios')]
 class Products extends Component
 {
+    private const VARIANT_SKU_PREFIX = 'CHO-';
+
+    private const VARIANT_SKU_MAX_LENGTH = 60;
+
     public array $prices = [];
 
     public array $recipeQuantities = [];
@@ -75,6 +79,10 @@ class Products extends Component
         $this->newVariantName = trim($this->newVariantName);
         $this->newVariantSku = Str::upper(trim($this->newVariantSku));
 
+        if ($this->newVariantSku === '') {
+            $this->newVariantSku = $this->generateVariantSku();
+        }
+
         $validated = $this->validate([
             'newVariantProductId' => [
                 'required',
@@ -110,6 +118,41 @@ class Products extends Component
         $this->reset('newVariantName', 'newVariantSku', 'newVariantPrice');
         $this->syncInputs();
         $this->statusMessage = 'Variante agregada correctamente.';
+    }
+
+    /**
+     * Build an uppercase SKU from the selected product name, keeping it unique.
+     */
+    private function generateVariantSku(): string
+    {
+        $product = Product::query()
+            ->whereNull('deleted_at')
+            ->find($this->newVariantProductId);
+
+        if (! $product instanceof Product) {
+            return '';
+        }
+
+        $slug = Str::upper(Str::slug($product->name));
+
+        if ($slug === '') {
+            return '';
+        }
+
+        $base = Str::limit(
+            self::VARIANT_SKU_PREFIX.$slug,
+            self::VARIANT_SKU_MAX_LENGTH,
+            ''
+        );
+        $sku = $base;
+        $sequence = 2;
+
+        while (ProductVariant::query()->where('sku', $sku)->exists()) {
+            $suffix = '-'.$sequence++;
+            $sku = Str::limit($base, self::VARIANT_SKU_MAX_LENGTH - strlen($suffix), '').$suffix;
+        }
+
+        return $sku;
     }
 
     public function renameVariant(int $variantId): void
