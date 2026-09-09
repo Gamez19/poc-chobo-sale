@@ -121,7 +121,7 @@ class Products extends Component
     }
 
     /**
-     * Build an uppercase SKU from the selected product name, keeping it unique.
+     * Build an uppercase SKU from the selected product and category names, keeping it unique.
      */
     private function generateVariantSku(): string
     {
@@ -133,11 +133,16 @@ class Products extends Component
             return '';
         }
 
-        $slug = Str::upper(Str::slug($product->name));
+        $segments = array_values(array_filter([
+            Str::upper(Str::slug($product->name)),
+            Str::upper(Str::slug($this->newVariantName)),
+        ], fn (string $segment): bool => $segment !== ''));
 
-        if ($slug === '') {
+        if ($segments === []) {
             return '';
         }
+
+        $slug = implode('-', $segments);
 
         $base = Str::limit(
             self::VARIANT_SKU_PREFIX.$slug,

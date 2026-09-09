@@ -318,7 +318,7 @@ class ProductsTest extends TestCase
         ]);
     }
 
-    public function test_create_variant_generates_the_sku_from_the_product_name_when_left_blank(): void
+    public function test_create_variant_generates_the_sku_from_the_product_and_category_names_when_left_blank(): void
     {
         $product = $this->makeProduct('Chocobanano Especial', 'chocobanano-especial');
 
@@ -334,7 +334,35 @@ class ProductsTest extends TestCase
         $this->assertDatabaseHas('product_variants', [
             'product_id' => $product->id,
             'name' => 'Maní',
-            'sku' => 'CHO-CHOCOBANANO-ESPECIAL',
+            'sku' => 'CHO-CHOCOBANANO-ESPECIAL-MANI',
+        ]);
+    }
+
+    public function test_generated_skus_differ_per_category_of_the_same_product(): void
+    {
+        $product = $this->makeProduct('Chocobanano Especial', 'chocobanano-especial');
+
+        Livewire::test(Products::class)
+            ->set('newVariantProductId', $product->id)
+            ->set('newVariantName', 'Maní')
+            ->set('newVariantSku', '')
+            ->set('newVariantPrice', '20.00')
+            ->call('createVariant')
+            ->assertHasNoErrors()
+            ->set('newVariantProductId', $product->id)
+            ->set('newVariantName', 'Chispitas')
+            ->set('newVariantSku', '')
+            ->set('newVariantPrice', '22.00')
+            ->call('createVariant')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('product_variants', [
+            'product_id' => $product->id,
+            'sku' => 'CHO-CHOCOBANANO-ESPECIAL-MANI',
+        ]);
+        $this->assertDatabaseHas('product_variants', [
+            'product_id' => $product->id,
+            'sku' => 'CHO-CHOCOBANANO-ESPECIAL-CHISPITAS',
         ]);
     }
 
