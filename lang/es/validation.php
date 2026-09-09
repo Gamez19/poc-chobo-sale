@@ -125,6 +125,7 @@ return [
 
     'attributes' => [
         'code' => 'código del lote',
+        'currentPassword' => 'contraseña actual',
         'editMaterialId' => 'materia prima',
         'editMinimumStock' => 'nivel mínimo',
         'editName' => 'nombre',
@@ -141,6 +142,8 @@ return [
         'newVariantProductId' => 'producto',
         'newVariantSku' => 'SKU',
         'notes' => 'notas',
+        'password' => 'contraseña',
+        'password_confirmation' => 'confirmación de contraseña',
         'prices.*' => 'precio',
         'producedAt' => 'fecha de producción',
         'quantities.*' => 'cantidad',
@@ -151,6 +154,7 @@ return [
         'restockQuantity' => 'cantidad',
         'restockUnitCost' => 'costo unitario',
         'soldAt' => 'fecha de venta',
+        'theme' => 'tema',
         'unit' => 'unidad',
         'variantNames.*' => 'nombre de la variante',
         'variantQuantities.*' => 'cantidad',

@@ -53,9 +53,9 @@
             <span class="table-secondary">Margen del stock disponible</span>
         </article>
         <article class="mini-stat is-highlighted">
-            <small>Ganancia combinada</small>
-            <strong>{{ \App\Support\Money::format($realizedProfitCents + $projectedProfitCents) }}</strong>
-            <span class="table-secondary">Real más proyección del período</span>
+            <small>Margen real</small>
+            <strong>{{ $realizedMarginPercent }} %</strong>
+            <span class="table-secondary">Ganancia real sobre los ingresos reales del período</span>
         </article>
     </section>
 

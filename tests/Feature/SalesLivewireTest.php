@@ -42,10 +42,55 @@ class SalesLivewireTest extends TestCase
             ->assertSeeHtml(route('production-lots'))
             ->html();
 
-        $this->assertMatchesRegularExpression(
-            '/id="sale-qty-'.$variant->id.'"[^>]*\sdisabled/',
-            $html,
-        );
+        $this->assertStringNotContainsString('id="sale-qty-'.$variant->id.'"', $html);
+    }
+
+    public function test_only_variants_with_available_stock_are_offered(): void
+    {
+        $sellable = $this->variantWithStock('Chocobanano', 'Maní', 3);
+        $empty = $this->variant('Chocobanano', 'Coco');
+
+        $html = Livewire::test(Sales::class)->html();
+
+        $this->assertStringContainsString('id="sale-qty-'.$sellable->id.'"', $html);
+        $this->assertStringNotContainsString('id="sale-qty-'.$empty->id.'"', $html);
+    }
+
+    public function test_search_filters_sellable_variants_by_product_and_by_variant_name(): void
+    {
+        $peanut = $this->variantWithStock('Chocobanano', 'Maní', 3);
+        $lollipop = $this->variantWithStock('Paleta', 'Coco', 3);
+
+        $component = Livewire::test(Sales::class)
+            ->assertSeeHtml('wire:model.live.debounce.300ms="search"');
+
+        $component->set('search', 'paleta');
+        $this->assertStringContainsString('id="sale-qty-'.$lollipop->id.'"', $component->html());
+        $this->assertStringNotContainsString('id="sale-qty-'.$peanut->id.'"', $component->html());
+
+        $component->set('search', 'maní');
+        $this->assertStringContainsString('id="sale-qty-'.$peanut->id.'"', $component->html());
+        $this->assertStringNotContainsString('id="sale-qty-'.$lollipop->id.'"', $component->html());
+
+        $component->set('search', 'mermelada')
+            ->assertSee('No encontramos productos con ese nombre')
+            ->assertDontSee('Para vender necesitas configurar la receta');
+    }
+
+    public function test_total_uses_live_quantities_and_survives_a_search_that_hides_the_selection(): void
+    {
+        $peanut = $this->variantWithStock('Chocobanano', 'Maní', 3);
+        $this->variantWithStock('Paleta', 'Coco', 3);
+
+        $component = Livewire::test(Sales::class)
+            ->assertSeeHtml('wire:model.live.debounce.400ms="quantities.'.$peanut->id.'"')
+            ->set('quantities.'.$peanut->id, 2)
+            ->assertSee('C$ 40.00');
+
+        $component->set('search', 'paleta')
+            ->assertSee('C$ 40.00');
+
+        $this->assertSame(2, (int) $component->get('quantities')[$peanut->id]);
     }
 
     public function test_quantities_only_track_active_variants(): void

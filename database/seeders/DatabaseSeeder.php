@@ -13,6 +13,8 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(UserSeeder::class);
+
         $materials = collect([
             ['key' => 'banana', 'name' => 'Banano', 'unit' => 'unidad', 'stock_quantity' => 180, 'unit_cost_cents' => 300, 'minimum_stock' => 30],
             ['key' => 'chocolate', 'name' => 'Chocolate para cobertura', 'unit' => 'gramos', 'stock_quantity' => 9000, 'unit_cost_cents' => 18, 'minimum_stock' => 1200],

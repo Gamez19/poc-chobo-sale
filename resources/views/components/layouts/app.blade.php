@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="{{ auth()->user()?->theme ?? 'claro' }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Control de inventario, lotes y ventas">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <title>{{ $title ?? 'Cacao Control' }} · Cacao Control</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
@@ -18,6 +19,7 @@
             ['route' => 'sales', 'label' => 'Ventas', 'icon' => 'cart'],
             ['route' => 'reports', 'label' => 'Reportes', 'icon' => 'chart'],
             ['route' => 'profits', 'label' => 'Ganancias', 'icon' => 'coins'],
+            ['route' => 'settings', 'label' => 'Configuración', 'icon' => 'settings'],
         ];
     @endphp
 
@@ -57,7 +59,10 @@
                                     <svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>
                                     @break
                                 @case('coins')
-                                    <svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="4"/><path d="M8 4v8M4 8h8"/><path d="M13 9.5a4 4 0 1 1-1 7.8"/><path d="M16 13h4M16 17h3"/></svg>
+                                    <x-heroicon-o-banknotes />
+                                    @break
+                                @case('settings')
+                                    <x-heroicon-o-cog-6-tooth />
                             @endswitch
                         </span>
                         {{ $item['label'] }}
@@ -80,9 +85,19 @@
                     <span class="topbar-kicker">OPERACIONES</span>
                     <strong>{{ $title ?? 'Resumen' }}</strong>
                 </div>
-                <div class="today-chip">
-                    <span>{{ now()->translatedFormat('D') }}</span>
-                    {{ now()->translatedFormat('d M Y') }}
+                <div class="topbar-actions">
+                    <a class="user-context" href="{{ route('settings') }}" wire:navigate>
+                        <span class="user-avatar" aria-hidden="true">{{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 1)) }}</span>
+                        <span class="user-context-name">{{ auth()->user()->name }}</span>
+                    </a>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button class="btn btn-soft btn-sm" type="submit">Salir</button>
+                    </form>
+                    <div class="today-chip">
+                        <span>{{ now()->translatedFormat('D') }}</span>
+                        {{ now()->translatedFormat('d M Y') }}
+                    </div>
                 </div>
             </header>
 

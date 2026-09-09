@@ -416,6 +416,59 @@ class ProductsTest extends TestCase
         $this->assertSame(1, ProductVariant::where('product_id', $product->id)->count());
     }
 
+    public function test_product_card_is_collapsed_by_default_with_the_product_in_the_summary(): void
+    {
+        $variant = $this->makeVariant($this->makeProduct(), 'Maní', 'CHO-MANI');
+
+        $html = Livewire::test(Products::class)
+            ->assertSeeHtml('<summary class="product-card-head">')
+            ->assertSeeHtml('wire:key="variant-'.$variant->id.'"')
+            ->assertSeeHtml('wire:click="savePrice('.$variant->id.')"')
+            ->assertSee('Chocobanano')
+            ->assertSee('Sin descripción')
+            ->assertSee('1 variante')
+            ->html();
+
+        $this->assertMatchesRegularExpression('/<details class="product-card"[^>]*\swire:ignore\.self[\s>]/', $html);
+        $this->assertMatchesRegularExpression('/<details class="product-card"[^>]*>/', $html);
+        $this->assertSame(
+            1,
+            preg_match('/<summary class="product-card-head">(.*?)<\/summary>/s', $html, $summary),
+            'The product summary was not found.',
+        );
+        $this->assertSame(
+            1,
+            preg_match_all('/<h2 class="product-card-heading">/', $summary[1]),
+            'The product summary must contain exactly one heading.',
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/<(?:div|p)[\s>]/',
+            $summary[1],
+            'The product summary must not contain flow-content div or p elements.',
+        );
+        $this->assertSame(
+            1,
+            preg_match_all('/<h[1-6][\s>]/', $summary[1]),
+            'The product summary must not contain extra heading elements.',
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/<h2 class="product-card-heading">\s*<(?:div|p|h[1-6])[\s>]/',
+            $summary[1],
+            'The product heading must wrap phrasing content only.',
+        );
+        $this->assertMatchesRegularExpression(
+            '/^<h2 class="product-card-heading">.*<\/h2>$/s',
+            trim($summary[1]),
+            'The heading must be the only element child of the product summary.',
+        );
+        $this->assertDoesNotMatchRegularExpression('/<details class="product-card"[^>]*\sopen[\s>]/', $html);
+        $this->assertLessThan(
+            strpos($html, 'wire:key="variant-'.$variant->id.'"'),
+            strpos($html, '<summary class="product-card-head">'),
+            'The product summary must precede its variants.',
+        );
+    }
+
     public function test_products_page_shows_inline_status_for_existing_actions(): void
     {
         $variant = $this->makeVariant($this->makeProduct(), 'Maní', 'CHO-MANI');

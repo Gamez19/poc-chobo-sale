@@ -83,14 +83,16 @@
 
     <div class="product-stack">
         @forelse ($products as $product)
-            <article class="product-card">
-                <header class="product-card-head">
-                    <div>
-                        <h2>{{ $product->name }}</h2>
-                        <p>{{ $product->description ?: 'Sin descripción' }}</p>
-                    </div>
-                    <span class="badge neutral">{{ $product->variants->count() }} {{ Str::plural('variante', $product->variants->count()) }}</span>
-                </header>
+            <details class="product-card" wire:ignore.self wire:key="product-{{ $product->id }}">
+                <summary class="product-card-head">
+                    <h2 class="product-card-heading">
+                        <span class="product-card-title">
+                            <span class="product-card-name">{{ $product->name }}</span>
+                            <span class="product-card-description">{{ $product->description ?: 'Sin descripción' }}</span>
+                        </span>
+                        <span class="badge neutral">{{ $product->variants->count() }} {{ Str::plural('variante', $product->variants->count()) }}</span>
+                    </h2>
+                </summary>
 
                 @if ($product->variants->isEmpty())
                     <div class="empty-state">
@@ -188,7 +190,7 @@
                         @endforeach
                     </div>
                 @endif
-            </article>
+            </details>
         @empty
             <div class="panel empty-state">
                 <strong>No hay productos registrados</strong>
