@@ -103,7 +103,7 @@
                                 <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.7 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z"/></svg>
                                 <span>
                                     <strong>{{ $material->name }}</strong>
-                                    <small>{{ number_format($material->stock_quantity, 0) }} {{ $material->unit }} disponibles · mínimo {{ number_format($material->minimum_stock, 3) }}</small>
+                                    <small>{{ number_format($material->stock_quantity, 3) }} {{ $material->unit }} disponibles · mínimo {{ number_format($material->minimum_stock, 3) }}</small>
                                 </span>
                             </div>
                         @endforeach

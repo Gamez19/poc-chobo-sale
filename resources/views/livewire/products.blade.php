@@ -119,8 +119,13 @@
                                         @endunless
                                     </div>
 
-                                    <div class="form-group">
-                                        <label for="variant-name-{{ $variant->id }}">Nombre de la variante</label>
+                                    @if ($variant->deleted_at)
+                                        <p class="table-secondary" data-testid="variant-archived-price-{{ $variant->id }}">
+                                            Precio histórico: {{ \App\Support\Money::format($variant->price_cents) }}
+                                        </p>
+                                    @else
+                                        <div class="form-group">
+                                            <label for="variant-name-{{ $variant->id }}">Nombre de la variante</label>
                                         <div class="price-row">
                                             <input id="variant-name-{{ $variant->id }}" class="input"
                                                    wire:model="variantNames.{{ $variant->id }}">
@@ -129,27 +134,28 @@
                                                     wire:click="removeVariant({{ $variant->id }})"
                                                     wire:confirm="¿Eliminar esta variante? Se conservará en el historial.">Eliminar</button>
                                         </div>
-                                        @error('variantNames.'.$variant->id) <span class="field-error">{{ $message }}</span> @enderror
-                                    </div>
-
-                                <div class="form-group">
-                                    <label for="price-{{ $variant->id }}">Precio de venta</label>
-                                    <div class="price-row">
-                                        <div class="input-with-prefix">
-                                            <span>C$</span>
-                                            <input id="price-{{ $variant->id }}" type="number" min="0.01" step="0.01" class="input" wire:model="prices.{{ $variant->id }}">
+                                            @error('variantNames.'.$variant->id) <span class="field-error">{{ $message }}</span> @enderror
                                         </div>
-                                        <button class="btn btn-soft btn-sm" type="button" wire:click="savePrice({{ $variant->id }})">Guardar</button>
-                                    </div>
-                                    @error('prices.'.$variant->id) <span class="field-error">{{ $message }}</span> @enderror
-                                </div>
 
-                                    @php
-                                        $variantMaterials = $materials->filter(fn ($material) => (! $material->deleted_at && $material->active)
-                                            || $variant->recipeItems->contains('raw_material_id', $material->id));
-                                    @endphp
-                                    <details class="recipe">
-                                        <summary>Configurar receta · {{ $variant->recipeItems->count() }} insumos</summary>
+                                        <div class="form-group">
+                                            <label for="price-{{ $variant->id }}">Precio de venta</label>
+                                            <div class="price-row">
+                                                <div class="input-with-prefix">
+                                                    <span>C$</span>
+                                                    <input id="price-{{ $variant->id }}" type="number" min="0.01" step="0.01" class="input" wire:model="prices.{{ $variant->id }}">
+                                                </div>
+                                                <button class="btn btn-soft btn-sm" type="button" wire:click="savePrice({{ $variant->id }})">Guardar</button>
+                                            </div>
+                                            @error('prices.'.$variant->id) <span class="field-error">{{ $message }}</span> @enderror
+                                        </div>
+
+                                        @php
+                                            $activeRecipeItems = $variant->recipeItems->whereNull('deleted_at');
+                                            $variantMaterials = $materials->filter(fn ($material) => (! $material->deleted_at && $material->active)
+                                                || $activeRecipeItems->contains('raw_material_id', $material->id));
+                                        @endphp
+                                        <details class="recipe">
+                                            <summary>Configurar receta · {{ $activeRecipeItems->count() }} insumos</summary>
                                         <div class="recipe-fields">
                                             @foreach ($variantMaterials as $material)
                                                 <div class="mini-field">
@@ -167,14 +173,15 @@
                                                        type="number" min="0" step="0.001" class="input"
                                                        wire:model="recipeQuantities.{{ $variant->id }}.{{ $material->id }}"
                                                        placeholder="0">
+                                                    </div>
+                                                @endforeach
+                                                <button class="btn btn-secondary btn-sm w-full" type="button" wire:click="saveRecipe({{ $variant->id }})">
+                                                    Guardar receta
+                                                </button>
                                             </div>
-                                        @endforeach
-                                        <button class="btn btn-secondary btn-sm w-full" type="button" wire:click="saveRecipe({{ $variant->id }})">
-                                            Guardar receta
-                                        </button>
-                                    </div>
-                                </details>
-                            </section>
+                                        </details>
+                                    @endif
+                                </section>
                         @endforeach
                     </div>
                 @endif

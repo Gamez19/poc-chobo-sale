@@ -157,6 +157,16 @@ class SoftDeleteAndRawMaterialsTest extends TestCase
         ]);
     }
 
+    public function test_raw_material_page_shows_fractional_stock_with_three_decimals(): void
+    {
+        $this->makeMaterial('Azúcar', ['stock_quantity' => '2.250', 'minimum_stock' => 1]);
+
+        Livewire::test(RawMaterials::class)
+            ->assertSee('2.250 unidad')
+            ->call('openRestock', RawMaterial::query()->where('name', 'Azúcar')->value('id'))
+            ->assertSee('2.250 unidad actuales');
+    }
+
     public function test_soft_deleted_material_remains_visible_when_used_by_a_recipe(): void
     {
         $material = $this->makeMaterial('Colorante');

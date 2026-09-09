@@ -38,6 +38,22 @@ return new class extends Migration
                 $table->dropUnique($definition['index']);
             });
         }
+
+        $recipeIndex = 'recipe_items_product_variant_id_raw_material_id_unique';
+
+        if (! Schema::hasIndex('recipe_items', $recipeIndex)) {
+            return;
+        }
+
+        if (DB::getDriverName() === 'mysql' && ! Schema::hasIndex('recipe_items', 'idx_recipe_items_product_variant_id')) {
+            Schema::table('recipe_items', function (Blueprint $table): void {
+                $table->index('product_variant_id', 'idx_recipe_items_product_variant_id');
+            });
+        }
+
+        Schema::table('recipe_items', function (Blueprint $table) use ($recipeIndex): void {
+            $table->dropUnique($recipeIndex);
+        });
     }
 
     private function createSoftDeleteIndexes(): void
@@ -48,6 +64,7 @@ return new class extends Migration
                 ['table' => 'products', 'index' => 'products_slug_unique', 'statement' => 'CREATE UNIQUE INDEX products_slug_unique ON products ((IF(deleted_at IS NULL, slug, NULL)))'],
                 ['table' => 'product_variants', 'index' => 'product_variants_sku_unique', 'statement' => 'CREATE UNIQUE INDEX product_variants_sku_unique ON product_variants ((IF(deleted_at IS NULL, sku, NULL)))'],
                 ['table' => 'product_variants', 'index' => 'product_variants_product_id_name_unique', 'statement' => 'CREATE UNIQUE INDEX product_variants_product_id_name_unique ON product_variants ((IF(deleted_at IS NULL, product_id, NULL)), (IF(deleted_at IS NULL, name, NULL)))'],
+                ['table' => 'recipe_items', 'index' => 'recipe_items_product_variant_id_raw_material_id_unique', 'statement' => 'CREATE UNIQUE INDEX recipe_items_product_variant_id_raw_material_id_unique ON recipe_items ((IF(deleted_at IS NULL, product_variant_id, NULL)), (IF(deleted_at IS NULL, raw_material_id, NULL)))'],
                 ['table' => 'production_lots', 'index' => 'production_lots_code_unique', 'statement' => 'CREATE UNIQUE INDEX production_lots_code_unique ON production_lots ((IF(deleted_at IS NULL, code, NULL)))'],
             ]
             : [
@@ -55,6 +72,7 @@ return new class extends Migration
                 ['table' => 'products', 'index' => 'products_slug_unique', 'statement' => 'CREATE UNIQUE INDEX products_slug_unique ON products(slug) WHERE deleted_at IS NULL'],
                 ['table' => 'product_variants', 'index' => 'product_variants_sku_unique', 'statement' => 'CREATE UNIQUE INDEX product_variants_sku_unique ON product_variants(sku) WHERE deleted_at IS NULL'],
                 ['table' => 'product_variants', 'index' => 'product_variants_product_id_name_unique', 'statement' => 'CREATE UNIQUE INDEX product_variants_product_id_name_unique ON product_variants(product_id, name) WHERE deleted_at IS NULL'],
+                ['table' => 'recipe_items', 'index' => 'recipe_items_product_variant_id_raw_material_id_unique', 'statement' => 'CREATE UNIQUE INDEX recipe_items_product_variant_id_raw_material_id_unique ON recipe_items(product_variant_id, raw_material_id) WHERE deleted_at IS NULL'],
                 ['table' => 'production_lots', 'index' => 'production_lots_code_unique', 'statement' => 'CREATE UNIQUE INDEX production_lots_code_unique ON production_lots(code) WHERE deleted_at IS NULL'],
             ];
 
@@ -69,6 +87,12 @@ return new class extends Migration
     {
         $this->dropSoftDeleteIndexes();
         $this->restoreLegacyUniqueIndexes();
+
+        if (DB::getDriverName() === 'mysql' && Schema::hasIndex('recipe_items', 'idx_recipe_items_product_variant_id')) {
+            Schema::table('recipe_items', function (Blueprint $table): void {
+                $table->dropIndex('idx_recipe_items_product_variant_id');
+            });
+        }
 
         foreach (['products', 'product_variants', 'raw_materials', 'recipe_items', 'production_lots'] as $tableName) {
             if (Schema::hasColumn($tableName, 'deleted_at')) {

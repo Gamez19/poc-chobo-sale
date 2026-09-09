@@ -218,14 +218,19 @@ class Products extends Component
                         'raw_material_id' => $materialId,
                     ]);
                     $item->quantity_required = number_format($quantity, 3, '.', '');
-                    $item->restore();
-                    $item->save();
+
+                    if ($item->trashed()) {
+                        $item->restore();
+                    } else {
+                        $item->save();
+                    }
                 } else {
                     $items->each(fn (RecipeItem $item): ?bool => $item->delete());
                 }
             }
         });
 
+        $this->syncInputs();
         $this->statusMessage = 'Receta actualizada.';
     }
 
@@ -239,8 +244,9 @@ class Products extends Component
                 $this->variantNames[$variant->id] = $variant->name;
 
                 foreach ($variant->recipeItems as $item) {
-                    $this->recipeQuantities[$variant->id][$item->raw_material_id] =
-                        rtrim(rtrim($item->quantity_required, '0'), '.');
+                    $this->recipeQuantities[$variant->id][$item->raw_material_id] = $item->trashed()
+                        ? '0'
+                        : rtrim(rtrim($item->quantity_required, '0'), '.');
                 }
             });
     }

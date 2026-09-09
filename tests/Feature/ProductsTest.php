@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductionLot;
 use App\Models\ProductVariant;
 use App\Models\RawMaterial;
+use App\Models\RecipeItem;
 use App\Models\Sale;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -28,6 +29,129 @@ class ProductsTest extends TestCase
             'sku' => $sku,
             'price_cents' => 2000,
         ]);
+    }
+
+    private function makeMaterial(string $name, array $attributes = []): RawMaterial
+    {
+        return RawMaterial::create(array_merge([
+            'name' => $name,
+            'unit' => 'unidad',
+            'stock_quantity' => 10,
+            'unit_cost_cents' => 300,
+            'minimum_stock' => 2,
+        ], $attributes));
+    }
+
+    public function test_saving_a_recipe_creates_the_missing_recipe_items(): void
+    {
+        $material = $this->makeMaterial('Banano');
+        $variant = $this->makeVariant($this->makeProduct(), 'Maní', 'CHO-MANI');
+
+        $component = Livewire::test(Products::class)
+            ->set("recipeQuantities.{$variant->id}.{$material->id}", '1.5000')
+            ->call('saveRecipe', $variant->id)
+            ->assertHasNoErrors()
+            ->assertSet('statusMessage', 'Receta actualizada.');
+
+        $item = RecipeItem::query()
+            ->where('product_variant_id', $variant->id)
+            ->where('raw_material_id', $material->id)
+            ->first();
+
+        $this->assertNotNull($item, 'The recipe item was not inserted.');
+        $this->assertSame('1.500', $item->quantity_required);
+        $this->assertNull($item->deleted_at);
+
+        $component->assertSet("recipeQuantities.{$variant->id}.{$material->id}", '1.5');
+    }
+
+    public function test_saving_a_recipe_restores_a_soft_deleted_recipe_item_with_the_new_quantity(): void
+    {
+        $material = $this->makeMaterial('Banano');
+        $variant = $this->makeVariant($this->makeProduct(), 'Maní', 'CHO-MANI');
+        $item = $variant->recipeItems()->create([
+            'raw_material_id' => $material->id,
+            'quantity_required' => 1,
+        ]);
+        $item->delete();
+
+        Livewire::test(Products::class)
+            ->set("recipeQuantities.{$variant->id}.{$material->id}", '2.25')
+            ->call('saveRecipe', $variant->id)
+            ->assertHasNoErrors();
+
+        $item->refresh();
+
+        $this->assertNull($item->deleted_at);
+        $this->assertSame('2.250', $item->quantity_required);
+        $this->assertSame(1, RecipeItem::withTrashed()->count());
+    }
+
+    public function test_saving_a_recipe_updates_an_active_recipe_item_and_removes_zeroed_materials(): void
+    {
+        $kept = $this->makeMaterial('Banano');
+        $dropped = $this->makeMaterial('Cacao');
+        $variant = $this->makeVariant($this->makeProduct(), 'Maní', 'CHO-MANI');
+        $keptItem = $variant->recipeItems()->create([
+            'raw_material_id' => $kept->id,
+            'quantity_required' => 1,
+        ]);
+        $droppedItem = $variant->recipeItems()->create([
+            'raw_material_id' => $dropped->id,
+            'quantity_required' => 3,
+        ]);
+
+        Livewire::test(Products::class)
+            ->set("recipeQuantities.{$variant->id}.{$kept->id}", '4')
+            ->set("recipeQuantities.{$variant->id}.{$dropped->id}", '0')
+            ->call('saveRecipe', $variant->id)
+            ->assertHasNoErrors();
+
+        $this->assertSame('4.000', $keptItem->refresh()->quantity_required);
+        $this->assertSoftDeleted('recipe_items', ['id' => $droppedItem->id]);
+        $this->assertSame(2, RecipeItem::withTrashed()->count());
+    }
+
+    public function test_deleted_variant_hides_configuration_actions_but_keeps_restore(): void
+    {
+        $variant = $this->makeVariant($this->makeProduct(), 'Maní', 'CHO-MANI');
+
+        Livewire::test(Products::class)
+            ->call('removeVariant', $variant->id)
+            ->assertHasNoErrors()
+            ->assertSee('Maní')
+            ->assertSee('Eliminada')
+            ->assertSeeHtml('wire:click="restoreVariant('.$variant->id.')"')
+            ->assertDontSeeHtml('wire:click="renameVariant('.$variant->id.')"')
+            ->assertDontSeeHtml('wire:click="removeVariant('.$variant->id.')"')
+            ->assertDontSeeHtml('wire:click="savePrice('.$variant->id.')"')
+            ->assertDontSeeHtml('wire:click="saveRecipe('.$variant->id.')"');
+    }
+
+    public function test_recipe_summary_ignores_soft_deleted_recipe_items(): void
+    {
+        $kept = $this->makeMaterial('Banano');
+        $zeroed = $this->makeMaterial('Cacao');
+        $retired = $this->makeMaterial('Colorante');
+        $variant = $this->makeVariant($this->makeProduct(), 'Maní', 'CHO-MANI');
+        $variant->recipeItems()->create([
+            'raw_material_id' => $kept->id,
+            'quantity_required' => 1,
+        ]);
+        $variant->recipeItems()->create([
+            'raw_material_id' => $zeroed->id,
+            'quantity_required' => 2,
+        ])->delete();
+        $variant->recipeItems()->create([
+            'raw_material_id' => $retired->id,
+            'quantity_required' => 2,
+        ])->delete();
+        $retired->delete();
+
+        Livewire::test(Products::class)
+            ->assertSee('Configurar receta · 1 insumos')
+            ->assertSee('Banano')
+            ->assertDontSee('Colorante');
     }
 
     public function test_variant_can_be_renamed(): void

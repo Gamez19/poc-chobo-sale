@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -30,5 +31,9 @@ class DatabaseMigrationTest extends TestCase
 
         $this->assertTrue(Schema::hasColumn('products', 'deleted_at'));
         $this->assertTrue(Schema::hasIndex('products', 'products_slug_unique'));
+        $index = DB::selectOne("SELECT sql FROM sqlite_master WHERE type = 'index' AND name = 'recipe_items_product_variant_id_raw_material_id_unique'");
+
+        $this->assertNotNull($index);
+        $this->assertStringContainsString('WHERE deleted_at IS NULL', $index->sql);
     }
 }

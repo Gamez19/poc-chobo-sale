@@ -40,7 +40,7 @@
                             </td>
                             <td>
                                 <span class="badge {{ $isLow ? 'danger' : 'success' }}">
-                                    {{ number_format($material->stock_quantity, 0) }} {{ $material->unit }}
+                                    {{ number_format($material->stock_quantity, 3) }} {{ $material->unit }}
                                 </span>
                                 <div @class(['progress', 'is-low' => $isLow])><span style="width:{{ $progress }}%"></span></div>
                             </td>
@@ -65,7 +65,7 @@
                     <article class="mobile-data-card">
                         <div class="mobile-data-card-head">
                             <strong>{{ $material->name }}</strong>
-                            <span class="badge {{ $isLow ? 'danger' : 'success' }}">{{ number_format($material->stock_quantity, 0) }} {{ $material->unit }}</span>
+                            <span class="badge {{ $isLow ? 'danger' : 'success' }}">{{ number_format($material->stock_quantity, 3) }} {{ $material->unit }}</span>
                         </div>
                         <small>Mínimo: {{ number_format($material->minimum_stock, 3) }} {{ $material->unit }} · {{ \App\Support\Money::format($material->unit_cost_cents) }} por {{ $material->unit }}</small>
                         <div @class(['progress', 'is-low' => $isLow])><span style="width:{{ $progress }}%"></span></div>
@@ -135,7 +135,7 @@
                 <div class="modal-head">
                     <div>
                         <h2 id="restock-title">Agregar entrada</h2>
-                        <p>{{ $selectedMaterial->name }} · {{ number_format($selectedMaterial->stock_quantity, 0) }} {{ $selectedMaterial->unit }} actuales</p>
+                        <p>{{ $selectedMaterial->name }} · {{ number_format($selectedMaterial->stock_quantity, 3) }} {{ $selectedMaterial->unit }} actuales</p>
                     </div>
                     <button type="button" class="btn btn-secondary btn-sm" wire:click="$set('restockMaterialId', null)" aria-label="Cerrar">Cerrar</button>
                 </div>
