@@ -118,8 +118,17 @@ return new class extends Migration
             $table->index('production_lot_item_id', 'idx_sale_lots_lot_item');
         });
 
-        DB::statement('CREATE INDEX idx_lot_items_in_stock ON production_lot_items(product_variant_id, production_lot_id) WHERE quantity_available > 0');
-        DB::statement('PRAGMA optimize');
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('CREATE INDEX idx_lot_items_in_stock ON production_lot_items(product_variant_id, production_lot_id) WHERE quantity_available > 0');
+            DB::statement('PRAGMA optimize');
+        } else {
+            Schema::table('production_lot_items', function (Blueprint $table): void {
+                $table->index(
+                    ['product_variant_id', 'production_lot_id', 'quantity_available'],
+                    'idx_lot_items_in_stock',
+                );
+            });
+        }
     }
 
     public function down(): void
