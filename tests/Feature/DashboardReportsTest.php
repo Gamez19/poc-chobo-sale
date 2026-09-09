@@ -50,13 +50,14 @@ class DashboardReportsTest extends TestCase
         $component->assertSee('Leche')->assertDontSee('Cacao viejo');
     }
 
-    public function test_low_material_alerts_show_fractional_stock_with_three_decimals(): void
+    public function test_low_material_alerts_show_quantities_with_two_decimals(): void
     {
         $this->lowMaterial('Leche');
         RawMaterial::query()->where('name', 'Leche')->update(['stock_quantity' => '1.250']);
 
         Livewire::test(Dashboard::class)
-            ->assertSee('1.250 kg disponibles');
+            ->assertSee('1.25 kg disponibles')
+            ->assertSee('mínimo 5.00');
     }
 
     public function test_report_with_empty_dates_shows_a_message_and_no_rows(): void

@@ -18,6 +18,7 @@ class RawMaterial extends Model
         'mililitros',
         'paquete',
         'libra',
+        'onzas',
     ];
 
     protected $fillable = [

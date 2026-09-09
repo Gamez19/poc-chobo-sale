@@ -157,14 +157,101 @@ class SoftDeleteAndRawMaterialsTest extends TestCase
         ]);
     }
 
-    public function test_raw_material_page_shows_fractional_stock_with_three_decimals(): void
+    public function test_raw_material_can_be_created_with_onzas_as_a_supported_unit(): void
+    {
+        Livewire::test(RawMaterials::class)
+            ->set('name', 'Chocolate')
+            ->set('unit', 'onzas')
+            ->set('minimumStock', '2.50')
+            ->set('initialQuantity', '3.25')
+            ->set('initialUnitCost', '4.50')
+            ->call('createMaterial')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('raw_materials', [
+            'name' => 'Chocolate',
+            'unit' => 'onzas',
+        ]);
+    }
+
+    public function test_raw_material_page_shows_quantities_with_two_decimals(): void
     {
         $this->makeMaterial('Azúcar', ['stock_quantity' => '2.250', 'minimum_stock' => 1]);
 
         Livewire::test(RawMaterials::class)
-            ->assertSee('2.250 unidad')
+            ->assertSee('2.25 unidad')
+            ->assertSee('Mínimo: 1.00 unidad')
             ->call('openRestock', RawMaterial::query()->where('name', 'Azúcar')->value('id'))
-            ->assertSee('2.250 unidad actuales');
+            ->assertSee('2.25 unidad actuales');
+    }
+
+    public function test_raw_material_editing_updates_configuration_without_changing_stock_or_cost(): void
+    {
+        $material = $this->makeMaterial('Azucar', [
+            'stock_quantity' => '4.500',
+            'unit_cost_cents' => 750,
+            'minimum_stock' => 1,
+        ]);
+
+        Livewire::test(RawMaterials::class)
+            ->call('openEdit', $material->id)
+            ->assertSet('editName', 'Azucar')
+            ->assertSet('editUnit', 'unidad')
+            ->assertSet('editMinimumStock', '1.00')
+            ->set('editName', '  Azúcar refinada  ')
+            ->set('editUnit', 'onzas')
+            ->set('editMinimumStock', '2.25')
+            ->call('updateMaterial')
+            ->assertHasNoErrors()
+            ->assertSet('editMaterialId', null);
+
+        $material->refresh();
+
+        $this->assertSame('Azúcar refinada', $material->name);
+        $this->assertSame('onzas', $material->unit);
+        $this->assertSame('2.250', $material->minimum_stock);
+        $this->assertSame('4.500', $material->stock_quantity);
+        $this->assertSame(750, $material->unit_cost_cents);
+    }
+
+    public function test_raw_material_editing_rejects_a_duplicate_active_name(): void
+    {
+        $this->makeMaterial('Cacao');
+        $material = $this->makeMaterial('Leche');
+
+        Livewire::test(RawMaterials::class)
+            ->call('openEdit', $material->id)
+            ->set('editName', 'Cacao')
+            ->call('updateMaterial')
+            ->assertHasErrors(['editName' => 'unique'])
+            ->set('editName', 'Leche')
+            ->call('updateMaterial')
+            ->assertHasNoErrors();
+
+        $this->assertSame('Leche', $material->refresh()->name);
+    }
+
+    public function test_raw_material_editing_validates_unit_and_minimum_stock(): void
+    {
+        $material = $this->makeMaterial('Harina');
+
+        Livewire::test(RawMaterials::class)
+            ->call('openEdit', $material->id)
+            ->set('editUnit', 'toneladas')
+            ->call('updateMaterial')
+            ->assertHasErrors(['editUnit' => 'in'])
+            ->set('editUnit', 'gramos')
+            ->set('editMinimumStock', '-1')
+            ->call('updateMaterial')
+            ->assertHasErrors(['editMinimumStock' => 'min'])
+            ->set('editMinimumStock', '1.234')
+            ->call('updateMaterial')
+            ->assertHasErrors(['editMinimumStock' => 'decimal']);
+
+        $material->refresh();
+
+        $this->assertSame('unidad', $material->unit);
+        $this->assertSame('1.000', $material->minimum_stock);
     }
 
     public function test_soft_deleted_material_remains_visible_when_used_by_a_recipe(): void
