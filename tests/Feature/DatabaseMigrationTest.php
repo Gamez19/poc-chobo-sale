@@ -22,4 +22,13 @@ class DatabaseMigrationTest extends TestCase
 
         $this->assertTrue(Schema::hasIndex('production_lot_items', 'idx_lot_items_in_stock'));
     }
+
+    public function test_soft_delete_migration_can_resume_after_partial_application(): void
+    {
+        $migration = require base_path('database/migrations/2026_09_08_000005_add_soft_deletes_to_catalog_and_lots.php');
+        $migration->up();
+
+        $this->assertTrue(Schema::hasColumn('products', 'deleted_at'));
+        $this->assertTrue(Schema::hasIndex('products', 'products_slug_unique'));
+    }
 }
