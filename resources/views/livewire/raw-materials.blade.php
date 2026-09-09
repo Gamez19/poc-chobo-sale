@@ -7,79 +7,7 @@
         </div>
     </header>
 
-    <div class="split-grid">
-        <section class="panel">
-            <div class="panel-header">
-                <div>
-                    <h2>Inventario de insumos</h2>
-                    <p>{{ $materials->total() }} materias primas registradas</p>
-                </div>
-            </div>
-            <div class="panel-body" style="padding-bottom:10px">
-                <div class="search-box">
-                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-                    <input type="search" class="input" wire:model.live.debounce.300ms="search" placeholder="Buscar materia prima…">
-                </div>
-            </div>
-            <div class="table-wrap desktop-only">
-                <table class="data-table">
-                    <thead>
-                        <tr><th>Materia prima</th><th>Existencia</th><th>Costo unitario</th><th></th></tr>
-                    </thead>
-                    <tbody>
-                    @forelse ($materials as $material)
-                        @php
-                            $isLow = $material->isLowStock();
-                            $target = max((float) $material->minimum_stock * 2, 1);
-                            $progress = min(100, ((float) $material->stock_quantity / $target) * 100);
-                        @endphp
-                        <tr>
-                            <td>
-                                <span class="table-primary">{{ $material->name }}</span>
-                                    <span class="table-secondary">Mínimo: {{ number_format($material->minimum_stock, 2) }} {{ $material->unit }}</span>
-                            </td>
-                            <td>
-                                <span class="badge {{ $isLow ? 'danger' : 'success' }}">
-                                    {{ number_format($material->stock_quantity, 2) }} {{ $material->unit }}
-                                </span>
-                                <div @class(['progress', 'is-low' => $isLow])><span style="width:{{ $progress }}%"></span></div>
-                            </td>
-                            <td class="amount">{{ \App\Support\Money::format($material->unit_cost_cents) }}<span class="table-secondary">por {{ $material->unit }}</span></td>
-                            <td class="text-right">
-                                <button type="button" class="btn btn-secondary btn-sm" wire:click="openEdit({{ $material->id }})">Editar</button>
-                                    <button type="button" class="btn btn-secondary btn-sm" wire:click="openRestock({{ $material->id }})">Agregar entrada</button>
-                                </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="4"><div class="empty-state"><strong>No se encontraron insumos</strong><p>Agrega una materia prima usando el formulario.</p></div></td></tr>
-                    @endforelse
-                    </tbody>
-                </table>
-            </div>
-            <div class="mobile-card-list mobile-only">
-                @forelse ($materials as $material)
-                    @php
-                        $isLow = $material->isLowStock();
-                        $target = max((float) $material->minimum_stock * 2, 1);
-                        $progress = min(100, ((float) $material->stock_quantity / $target) * 100);
-                    @endphp
-                    <article class="mobile-data-card">
-                        <div class="mobile-data-card-head">
-                            <strong>{{ $material->name }}</strong>
-                        <span class="badge {{ $isLow ? 'danger' : 'success' }}">{{ number_format($material->stock_quantity, 2) }} {{ $material->unit }}</span>
-                        </div>
-                        <small>Mínimo: {{ number_format($material->minimum_stock, 2) }} {{ $material->unit }} · {{ \App\Support\Money::format($material->unit_cost_cents) }} por {{ $material->unit }}</small>
-                        <div @class(['progress', 'is-low' => $isLow])><span style="width:{{ $progress }}%"></span></div>
-                        <button type="button" class="btn btn-secondary btn-sm" wire:click="openEdit({{ $material->id }})">Editar</button>
-                        <button type="button" class="btn btn-secondary btn-sm" wire:click="openRestock({{ $material->id }})">Agregar entrada</button>
-                    </article>
-                @empty
-                    <div class="empty-state"><strong>No se encontraron insumos</strong><p>Agrega una materia prima usando el formulario.</p></div>
-                @endforelse
-            </div>
-            <div class="panel-body pagination-wrap">{{ $materials->links() }}</div>
-        </section>
-
+    <div class="split-grid is-form-first">
         <aside class="panel">
             <div class="panel-header">
                 <div>
@@ -132,17 +60,101 @@
                 </div>
             </form>
         </aside>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Inventario de insumos</h2>
+                    <p>{{ $materials->total() }} materias primas registradas</p>
+                </div>
+            </div>
+            <div class="panel-body" style="padding-bottom:10px">
+                <div class="search-box">
+                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                    <input type="search" class="input" wire:model.live.debounce.300ms="search" placeholder="Buscar materia prima…">
+                </div>
+            </div>
+            <ul class="material-list" role="list">
+                @forelse ($materials as $material)
+                    @php
+                        $isLow = $material->isLowStock();
+                        $target = max((float) $material->minimum_stock * 2, 1);
+                        $progress = min(100, ((float) $material->stock_quantity / $target) * 100);
+                        $stockLabel = number_format($material->stock_quantity, 2).' '.$material->unit;
+                        $progressWidth = ['width: '.$progress.'%'];
+                        $minimumLabel = number_format($material->minimum_stock, 2).' '.$material->unit;
+                        $rowLabel = 'Ver detalle de '.$material->name.': '.$stockLabel.' en existencia, mínimo '.$minimumLabel;
+                    @endphp
+                    <li wire:key="material-{{ $material->id }}">
+                        <button type="button"
+                                class="material-row"
+                                wire:click="openDetail({{ $material->id }})"
+                                aria-haspopup="dialog"
+                                aria-label="{{ $rowLabel }}">
+                            <span class="material-row-main">
+                                <strong>{{ $material->name }}</strong>
+                                <small>Mínimo: {{ $minimumLabel }}</small>
+                            </span>
+                            <span class="material-row-stock">
+                                <span class="badge {{ $isLow ? 'danger' : 'success' }}">{{ $stockLabel }}</span>
+                                <span @class(['progress', 'is-low' => $isLow]) aria-hidden="true">
+                                    <span @style($progressWidth)></span>
+                                </span>
+                            </span>
+                        </button>
+                    </li>
+                @empty
+                    <li><div class="empty-state"><strong>No se encontraron insumos</strong><p>Agrega una materia prima usando el formulario.</p></div></li>
+                @endforelse
+            </ul>
+            <div class="panel-body pagination-wrap">{{ $materials->links() }}</div>
+        </section>
     </div>
 
+    @if ($detailMaterialId && $detailMaterial)
+        <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="detail-title" wire:click.self="closeDetail">
+            <div class="modal">
+                <div class="modal-head">
+                    <div>
+                        <h2 id="detail-title">Detalle de la materia prima</h2>
+                        <p>{{ $detailMaterial->name }}</p>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" wire:click="closeDetail" aria-label="Cerrar">Cerrar</button>
+                </div>
+                <div class="modal-body">
+                    <dl class="mobile-data-grid">
+                        <div>
+                            <dt>Existencia</dt>
+                            <dd>{{ number_format($detailMaterial->stock_quantity, 2) }} {{ $detailMaterial->unit }}</dd>
+                        </div>
+                        <div>
+                            <dt>Nivel mínimo</dt>
+                            <dd>{{ number_format($detailMaterial->minimum_stock, 2) }} {{ $detailMaterial->unit }}</dd>
+                        </div>
+                        <div>
+                            <dt>Costo unitario</dt>
+                            <dd>{{ \App\Support\Money::format($detailMaterial->unit_cost_cents) }}</dd>
+                        </div>
+                    </dl>
+                    <p class="table-secondary">La existencia y el costo unitario solo cambian con entradas de inventario.</p>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" wire:click="openEdit({{ $detailMaterial->id }})">Editar</button>
+                        <button type="button" class="btn btn-primary" wire:click="openRestock({{ $detailMaterial->id }})">Agregar entrada</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     @if ($editMaterialId && $editingMaterial)
-        <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="edit-title" wire:click.self="$set('editMaterialId', null)">
+        <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="edit-title" wire:click.self="closeEdit">
             <form class="modal" wire:submit="updateMaterial">
                 <div class="modal-head">
                     <div>
                         <h2 id="edit-title">Editar materia prima</h2>
                         <p>{{ $editingMaterial->name }} · {{ number_format($editingMaterial->stock_quantity, 2) }} {{ $editingMaterial->unit }} actuales</p>
                     </div>
-                    <button type="button" class="btn btn-secondary btn-sm" wire:click="$set('editMaterialId', null)" aria-label="Cerrar">Cerrar</button>
+                    <button type="button" class="btn btn-secondary btn-sm" wire:click="closeEdit" aria-label="Cerrar">Cerrar</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-grid">
@@ -168,7 +180,7 @@
                     </div>
                     <p class="table-secondary">La existencia y el costo unitario solo cambian con entradas de inventario.</p>
                     <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" wire:click="$set('editMaterialId', null)">Cancelar</button>
+                        <button type="button" class="btn btn-secondary" wire:click="closeEdit">Cancelar</button>
                         <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">Guardar cambios</button>
                     </div>
                 </div>
@@ -177,14 +189,14 @@
     @endif
 
     @if ($restockMaterialId && $selectedMaterial)
-        <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="restock-title" wire:click.self="$set('restockMaterialId', null)">
+        <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="restock-title" wire:click.self="closeRestock">
             <form class="modal" wire:submit="restock">
                 <div class="modal-head">
                     <div>
                         <h2 id="restock-title">Agregar entrada</h2>
                         <p>{{ $selectedMaterial->name }} · {{ number_format($selectedMaterial->stock_quantity, 2) }} {{ $selectedMaterial->unit }} actuales</p>
                     </div>
-                    <button type="button" class="btn btn-secondary btn-sm" wire:click="$set('restockMaterialId', null)" aria-label="Cerrar">Cerrar</button>
+                    <button type="button" class="btn btn-secondary btn-sm" wire:click="closeRestock" aria-label="Cerrar">Cerrar</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-grid">
@@ -206,7 +218,7 @@
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" wire:click="$set('restockMaterialId', null)">Cancelar</button>
+                        <button type="button" class="btn btn-secondary" wire:click="closeRestock">Cancelar</button>
                         <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">Registrar entrada</button>
                     </div>
                 </div>

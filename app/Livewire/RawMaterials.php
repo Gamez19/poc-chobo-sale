@@ -29,6 +29,8 @@ class RawMaterials extends Component
 
     public string $initialUnitCost = '0';
 
+    public ?int $detailMaterialId = null;
+
     public ?int $restockMaterialId = null;
 
     public string $restockQuantity = '';
@@ -95,9 +97,39 @@ class RawMaterials extends Component
         session()->flash('success', 'Materia prima agregada correctamente.');
     }
 
+    /**
+     * Opening the detail closes any other modal so panels never stack.
+     */
+    public function openDetail(int $materialId): void
+    {
+        $material = RawMaterial::findOrFail($materialId);
+
+        $this->closeEdit();
+        $this->closeRestock();
+        $this->detailMaterialId = $material->id;
+    }
+
+    public function closeDetail(): void
+    {
+        $this->detailMaterialId = null;
+    }
+
+    public function closeEdit(): void
+    {
+        $this->reset('editMaterialId', 'editName', 'editUnit', 'editMinimumStock');
+        $this->resetValidation();
+    }
+
+    public function closeRestock(): void
+    {
+        $this->reset('restockMaterialId', 'restockQuantity', 'restockUnitCost', 'restockNotes');
+        $this->resetValidation();
+    }
+
     public function openRestock(int $materialId): void
     {
         $material = RawMaterial::findOrFail($materialId);
+        $this->detailMaterialId = null;
         $this->restockMaterialId = $material->id;
         $this->restockUnitCost = number_format($material->unit_cost_cents / 100, 2, '.', '');
         $this->restockQuantity = '';
@@ -108,6 +140,7 @@ class RawMaterials extends Component
     public function openEdit(int $materialId): void
     {
         $material = RawMaterial::findOrFail($materialId);
+        $this->detailMaterialId = null;
         $this->editMaterialId = $material->id;
         $this->editName = $material->name;
         $this->editUnit = $material->unit;
@@ -185,6 +218,9 @@ class RawMaterials extends Component
                 ->with(['movements' => fn ($query) => $query->latest('occurred_at')->limit(1)])
                 ->orderBy('name')
                 ->paginate(10),
+            'detailMaterial' => $this->detailMaterialId
+                ? RawMaterial::find($this->detailMaterialId)
+                : null,
             'selectedMaterial' => $this->restockMaterialId
                 ? RawMaterial::find($this->restockMaterialId)
                 : null,

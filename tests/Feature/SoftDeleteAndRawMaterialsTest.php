@@ -254,6 +254,77 @@ class SoftDeleteAndRawMaterialsTest extends TestCase
         $this->assertSame('1.000', $material->minimum_stock);
     }
 
+    public function test_new_material_form_is_rendered_before_the_inventory_list(): void
+    {
+        $this->makeMaterial('Azúcar');
+
+        $html = Livewire::test(RawMaterials::class)->html();
+
+        $this->assertLessThan(
+            strpos($html, 'Inventario de insumos'),
+            strpos($html, 'Nueva materia prima'),
+            'The new material form must come before the inventory list in document order.',
+        );
+    }
+
+    public function test_material_row_opens_the_detail_and_its_actions_replace_it_without_stacking(): void
+    {
+        $material = $this->makeMaterial('Azúcar', ['stock_quantity' => '2.250', 'minimum_stock' => 1]);
+
+        $component = Livewire::test(RawMaterials::class)
+            ->assertSeeHtml('wire:click="openDetail('.$material->id.')"')
+            ->call('openDetail', $material->id)
+            ->assertSet('detailMaterialId', $material->id)
+            ->assertSee('Detalle de la materia prima')
+            ->assertSee('2.25 unidad');
+
+        $component->call('openEdit', $material->id)
+            ->assertSet('detailMaterialId', null)
+            ->assertSet('editMaterialId', $material->id)
+            ->assertDontSee('Detalle de la materia prima');
+
+        $component->call('closeEdit')
+            ->call('openDetail', $material->id)
+            ->call('openRestock', $material->id)
+            ->assertSet('detailMaterialId', null)
+            ->assertSet('restockMaterialId', $material->id)
+            ->assertDontSee('Detalle de la materia prima');
+
+        $component->call('openDetail', $material->id)
+            ->assertSet('detailMaterialId', $material->id)
+            ->assertSet('restockMaterialId', null)
+            ->assertSet('editMaterialId', null)
+            ->assertDontSeeHtml('id="restock-title"');
+    }
+
+    public function test_opening_the_detail_from_an_open_edit_modal_leaves_only_the_detail(): void
+    {
+        $material = $this->makeMaterial('Azúcar', ['stock_quantity' => '2.250', 'minimum_stock' => 1]);
+
+        Livewire::test(RawMaterials::class)
+            ->call('openEdit', $material->id)
+            ->assertSet('editMaterialId', $material->id)
+            ->call('openDetail', $material->id)
+            ->assertSet('editMaterialId', null)
+            ->assertSet('editName', '')
+            ->assertSet('restockMaterialId', null)
+            ->assertSet('detailMaterialId', $material->id)
+            ->assertSee('Detalle de la materia prima')
+            ->assertDontSeeHtml('id="edit-title"');
+    }
+
+    public function test_material_row_announces_its_action_stock_and_minimum(): void
+    {
+        $this->makeMaterial('Azúcar', ['stock_quantity' => '2.250', 'minimum_stock' => 1]);
+
+        $html = Livewire::test(RawMaterials::class)
+            ->assertSeeHtml('aria-label="Ver detalle de Azúcar: 2.25 unidad en existencia, mínimo 1.00 unidad"')
+            ->assertDontSeeHtml('role="progressbar"')
+            ->html();
+
+        $this->assertMatchesRegularExpression('/class="progress"[^>]*\saria-hidden="true"/', $html);
+    }
+
     public function test_soft_deleted_material_remains_visible_when_used_by_a_recipe(): void
     {
         $material = $this->makeMaterial('Colorante');
