@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,29 @@ class DatabaseMigrationTest extends TestCase
         $migration->up();
 
         $this->assertTrue(Schema::hasIndex('production_lot_items', 'idx_lot_items_in_stock'));
+    }
+
+    public function test_user_seed_migration_creates_application_users_idempotently_and_preserves_them_on_rollback(): void
+    {
+        User::query()->delete();
+
+        $migration = require base_path('database/migrations/2026_09_09_152235_seed_application_users.php');
+        $migration->up();
+        $migration->up();
+
+        $this->assertSame(2, User::count());
+        $this->assertDatabaseHas('users', [
+            'name' => 'Keyling',
+            'email' => 'makent3@gmail.com',
+        ]);
+        $this->assertDatabaseHas('users', [
+            'name' => 'Edwin',
+            'email' => 'edwingamez19@gmail.com',
+        ]);
+
+        $migration->down();
+
+        $this->assertSame(2, User::count());
     }
 
     public function test_soft_delete_migration_can_resume_after_partial_application(): void
