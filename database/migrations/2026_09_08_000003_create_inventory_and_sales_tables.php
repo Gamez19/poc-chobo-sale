@@ -9,6 +9,23 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (collect([
+            'raw_materials',
+            'products',
+            'product_variants',
+            'recipe_items',
+            'production_lots',
+            'production_lot_items',
+            'raw_material_movements',
+            'sales',
+            'sale_items',
+            'sale_item_lots',
+        ])->every(fn (string $tableName): bool => Schema::hasTable($tableName))) {
+            $this->ensureStockIndex();
+
+            return;
+        }
+
         Schema::create('raw_materials', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
@@ -118,17 +135,28 @@ return new class extends Migration
             $table->index('production_lot_item_id', 'idx_sale_lots_lot_item');
         });
 
+        $this->ensureStockIndex();
+    }
+
+    private function ensureStockIndex(): void
+    {
+        if (Schema::hasIndex('production_lot_items', 'idx_lot_items_in_stock')) {
+            return;
+        }
+
         if (DB::getDriverName() === 'sqlite') {
             DB::statement('CREATE INDEX idx_lot_items_in_stock ON production_lot_items(product_variant_id, production_lot_id) WHERE quantity_available > 0');
             DB::statement('PRAGMA optimize');
-        } else {
-            Schema::table('production_lot_items', function (Blueprint $table): void {
-                $table->index(
-                    ['product_variant_id', 'production_lot_id', 'quantity_available'],
-                    'idx_lot_items_in_stock',
-                );
-            });
+
+            return;
         }
+
+        Schema::table('production_lot_items', function (Blueprint $table): void {
+            $table->index(
+                ['product_variant_id', 'production_lot_id', 'quantity_available'],
+                'idx_lot_items_in_stock',
+            );
+        });
     }
 
     public function down(): void
