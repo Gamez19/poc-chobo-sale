@@ -35,6 +35,26 @@ class DashboardReportsTest extends TestCase
         $component->assertSee('Maní')->assertDontSee('Coco');
     }
 
+    public function test_dashboard_prioritizes_finished_stock_and_hides_variant_skus(): void
+    {
+        $variant = $this->variantWithStock('Maní', 5);
+
+        $html = Livewire::test(Dashboard::class)
+            ->assertDontSee($variant->sku)
+            ->html();
+
+        $this->assertLessThan(
+            strpos($html, 'Ventas de hoy'),
+            strpos($html, 'Inventario terminado'),
+            'Finished stock must be the first dashboard stat card.',
+        );
+        $this->assertLessThan(
+            strpos($html, 'Últimas ventas'),
+            strpos($html, 'Existencia por variante'),
+            'The detailed finished-stock panel must precede lower activity panels.',
+        );
+    }
+
     public function test_low_material_alerts_ignore_inactive_materials(): void
     {
         $active = $this->lowMaterial('Leche');

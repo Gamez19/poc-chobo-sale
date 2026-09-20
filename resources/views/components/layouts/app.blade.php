@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Control de inventario, lotes y ventas">
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <title>{{ $title ?? 'Cacao Control' }} · Cacao Control</title>
+    <title>{{ $title ?? 'Choco Aventuras' }} · Choco Aventuras</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
@@ -21,22 +21,40 @@
             ['route' => 'profits', 'label' => 'Ganancias', 'icon' => 'coins'],
             ['route' => 'settings', 'label' => 'Configuración', 'icon' => 'settings'],
         ];
+        $currentHour = now()->hour;
+        $greeting = match (true) {
+            $currentHour >= 5 && $currentHour < 12 => 'Buenos días',
+            $currentHour >= 12 && $currentHour < 16 => 'Buenas tardes',
+            default => 'Buenas noches',
+        };
     @endphp
 
-    <div class="app-shell">
+    <div class="app-shell" x-data="{ sidebarExpanded: false }" :class="{ 'is-sidebar-expanded': sidebarExpanded }">
         <aside class="sidebar">
-            <a class="brand" href="{{ route('dashboard') }}" wire:navigate aria-label="Ir al resumen">
-                <span class="brand-mark">C</span>
-                <span>
-                    <strong>Cacao Control</strong>
-                    <small>Inventario & ventas</small>
-                </span>
-            </a>
+            <div class="sidebar-header">
+                <a class="brand" href="{{ route('dashboard') }}" wire:navigate aria-label="Ir al resumen">
+                    <span class="brand-mark">C</span>
+                    <span class="brand-copy">
+                        <strong>Choco Aventuras</strong>
+                        <small>Inventario & ventas</small>
+                    </span>
+                </a>
+
+                <button class="sidebar-toggle" type="button" aria-expanded="false" aria-label="Expandir menú de navegación" @click="sidebarExpanded = ! sidebarExpanded" :aria-expanded="sidebarExpanded.toString()" :aria-label="sidebarExpanded ? 'Contraer menú de navegación' : 'Expandir menú de navegación'">
+                    <span class="sidebar-toggle-menu" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+                    </span>
+                    <span class="sidebar-toggle-close" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
+                    </span>
+                </button>
+            </div>
 
             <nav class="side-nav" aria-label="Navegación principal">
                 @foreach ($navigation as $item)
                     <a href="{{ route($item['route']) }}"
                        wire:navigate
+                       aria-label="{{ $item['label'] }}"
                        @class(['nav-link', 'is-active' => request()->routeIs($item['route'])])>
                         <span class="nav-icon" aria-hidden="true">
                             @switch($item['icon'])
@@ -65,9 +83,19 @@
                                     <x-heroicon-o-cog-6-tooth />
                             @endswitch
                         </span>
-                        {{ $item['label'] }}
+                        <span class="nav-link-label">{{ $item['label'] }}</span>
                     </a>
                 @endforeach
+
+                <form class="sidebar-logout" method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button class="nav-link" type="submit" aria-label="Salir">
+                        <span class="nav-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 3v18H10"/></svg>
+                        </span>
+                        <span class="nav-link-label">Salir</span>
+                    </button>
+                </form>
             </nav>
 
             <div class="sidebar-note">
@@ -86,14 +114,7 @@
                     <strong>{{ $title ?? 'Resumen' }}</strong>
                 </div>
                 <div class="topbar-actions">
-                    <a class="user-context" href="{{ route('settings') }}" wire:navigate>
-                        <span class="user-avatar" aria-hidden="true">{{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 1)) }}</span>
-                        <span class="user-context-name">{{ auth()->user()->name }}</span>
-                    </a>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button class="btn btn-soft btn-sm" type="submit">Salir</button>
-                    </form>
+                    <p class="user-greeting">{{ $greeting }}, {{ auth()->user()?->name }}</p>
                     <div class="today-chip">
                         <span>{{ now()->translatedFormat('D') }}</span>
                         {{ now()->translatedFormat('d M Y') }}

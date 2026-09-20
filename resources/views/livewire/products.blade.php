@@ -41,7 +41,7 @@
             <div class="panel-header">
                 <div>
                     <h2>Nueva variante</h2>
-                    <p>Define categoría, SKU y precio</p>
+                    <p>Define categoría y precio</p>
                 </div>
             </div>
             <form class="panel-body" wire:submit="createVariant">
@@ -60,12 +60,6 @@
                         <label for="variant-name">Categoría</label>
                         <input id="variant-name" class="input" wire:model="newVariantName" placeholder="Ej. Maní">
                         @error('newVariantName') <span class="field-error">{{ $message }}</span> @enderror
-                    </div>
-                    <div class="form-group">
-                        <label for="variant-sku">SKU</label>
-                        <input id="variant-sku" class="input" wire:model="newVariantSku" placeholder="CHO-MANI">
-                        <span class="field-hint">Si lo dejas vacío se genera automáticamente con el prefijo CHO- y el nombre del producto.</span>
-                        @error('newVariantSku') <span class="field-error">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
                         <label for="variant-price">Precio</label>
@@ -106,7 +100,6 @@
                                     <div class="variant-top">
                                         <div>
                                             <h3>{{ $variant->name }}</h3>
-                                            <small>{{ $variant->sku }}</small>
                                         </div>
                                         <span class="badge {{ ($variant->available_stock ?? 0) > 0 ? 'success' : 'warning' }}">
                                             {{ $variant->available_stock ?? 0 }} disponibles

@@ -62,7 +62,6 @@ class SoftDeleteAndRawMaterialsTest extends TestCase
         Livewire::test(Products::class)
             ->set('newVariantProductId', $product->id)
             ->set('newVariantName', $variant->name)
-            ->set('newVariantSku', $variant->sku)
             ->set('newVariantPrice', '25.00')
             ->call('createVariant')
             ->assertHasNoErrors();
@@ -185,7 +184,7 @@ class SoftDeleteAndRawMaterialsTest extends TestCase
             ->assertSee('2.25 unidad actuales');
     }
 
-    public function test_raw_material_editing_updates_configuration_without_changing_stock_or_cost(): void
+    public function test_raw_material_editing_directly_corrects_its_configuration_stock_and_cost_without_a_movement(): void
     {
         $material = $this->makeMaterial('Azucar', [
             'stock_quantity' => '4.500',
@@ -197,9 +196,13 @@ class SoftDeleteAndRawMaterialsTest extends TestCase
             ->call('openEdit', $material->id)
             ->assertSet('editName', 'Azucar')
             ->assertSet('editUnit', 'unidad')
+            ->assertSet('editStockQuantity', '4.50')
+            ->assertSet('editUnitCost', '7.50')
             ->assertSet('editMinimumStock', '1.00')
             ->set('editName', '  Azúcar refinada  ')
             ->set('editUnit', 'onzas')
+            ->set('editStockQuantity', '6.25')
+            ->set('editUnitCost', '8.40')
             ->set('editMinimumStock', '2.25')
             ->call('updateMaterial')
             ->assertHasNoErrors()
@@ -210,8 +213,9 @@ class SoftDeleteAndRawMaterialsTest extends TestCase
         $this->assertSame('Azúcar refinada', $material->name);
         $this->assertSame('onzas', $material->unit);
         $this->assertSame('2.250', $material->minimum_stock);
-        $this->assertSame('4.500', $material->stock_quantity);
-        $this->assertSame(750, $material->unit_cost_cents);
+        $this->assertSame('6.250', $material->stock_quantity);
+        $this->assertSame(840, $material->unit_cost_cents);
+        $this->assertSame(0, $material->movements()->count());
     }
 
     public function test_raw_material_editing_rejects_a_duplicate_active_name(): void
@@ -231,7 +235,7 @@ class SoftDeleteAndRawMaterialsTest extends TestCase
         $this->assertSame('Leche', $material->refresh()->name);
     }
 
-    public function test_raw_material_editing_validates_unit_and_minimum_stock(): void
+    public function test_raw_material_editing_validates_unit_stock_cost_and_minimum_stock(): void
     {
         $material = $this->makeMaterial('Harina');
 
@@ -246,7 +250,15 @@ class SoftDeleteAndRawMaterialsTest extends TestCase
             ->assertHasErrors(['editMinimumStock' => 'min'])
             ->set('editMinimumStock', '1.234')
             ->call('updateMaterial')
-            ->assertHasErrors(['editMinimumStock' => 'decimal']);
+            ->assertHasErrors(['editMinimumStock' => 'decimal'])
+            ->set('editMinimumStock', '1')
+            ->set('editStockQuantity', '-1')
+            ->call('updateMaterial')
+            ->assertHasErrors(['editStockQuantity' => 'min'])
+            ->set('editStockQuantity', '1')
+            ->set('editUnitCost', '-1')
+            ->call('updateMaterial')
+            ->assertHasErrors(['editUnitCost' => 'min']);
 
         $material->refresh();
 

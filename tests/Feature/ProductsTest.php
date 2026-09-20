@@ -298,14 +298,13 @@ class ProductsTest extends TestCase
         $this->assertTrue($variant->fresh()->active);
     }
 
-    public function test_create_variant_normalizes_name_and_sku(): void
+    public function test_create_variant_normalizes_its_name_and_generates_the_sku_server_side(): void
     {
         $product = $this->makeProduct();
 
         Livewire::test(Products::class)
             ->set('newVariantProductId', $product->id)
             ->set('newVariantName', '  Maní  ')
-            ->set('newVariantSku', '  cho-mani  ')
             ->set('newVariantPrice', '20.00')
             ->call('createVariant')
             ->assertHasNoErrors();
@@ -313,19 +312,19 @@ class ProductsTest extends TestCase
         $this->assertDatabaseHas('product_variants', [
             'product_id' => $product->id,
             'name' => 'Maní',
-            'sku' => 'CHO-MANI',
+            'sku' => 'CHO-CHOCOBANANO-MANI',
             'price_cents' => 2000,
         ]);
     }
 
-    public function test_create_variant_generates_the_sku_from_the_product_and_category_names_when_left_blank(): void
+    public function test_variant_form_hides_sku_controls_while_persisting_generated_skus(): void
     {
         $product = $this->makeProduct('Chocobanano Especial', 'chocobanano-especial');
 
         Livewire::test(Products::class)
+            ->assertDontSee('SKU')
             ->set('newVariantProductId', $product->id)
             ->set('newVariantName', 'Maní')
-            ->set('newVariantSku', '   ')
             ->set('newVariantPrice', '20.00')
             ->call('createVariant')
             ->assertHasNoErrors()
@@ -345,13 +344,11 @@ class ProductsTest extends TestCase
         Livewire::test(Products::class)
             ->set('newVariantProductId', $product->id)
             ->set('newVariantName', 'Maní')
-            ->set('newVariantSku', '')
             ->set('newVariantPrice', '20.00')
             ->call('createVariant')
             ->assertHasNoErrors()
             ->set('newVariantProductId', $product->id)
             ->set('newVariantName', 'Chispitas')
-            ->set('newVariantSku', '')
             ->set('newVariantPrice', '22.00')
             ->call('createVariant')
             ->assertHasNoErrors();
@@ -363,24 +360,6 @@ class ProductsTest extends TestCase
         $this->assertDatabaseHas('product_variants', [
             'product_id' => $product->id,
             'sku' => 'CHO-CHOCOBANANO-ESPECIAL-CHISPITAS',
-        ]);
-    }
-
-    public function test_create_variant_keeps_a_manually_entered_sku(): void
-    {
-        $product = $this->makeProduct();
-
-        Livewire::test(Products::class)
-            ->set('newVariantProductId', $product->id)
-            ->set('newVariantName', 'Maní')
-            ->set('newVariantSku', '  cho-mani-especial  ')
-            ->set('newVariantPrice', '20.00')
-            ->call('createVariant')
-            ->assertHasNoErrors();
-
-        $this->assertDatabaseHas('product_variants', [
-            'product_id' => $product->id,
-            'sku' => 'CHO-MANI-ESPECIAL',
         ]);
     }
 
@@ -408,7 +387,6 @@ class ProductsTest extends TestCase
         Livewire::test(Products::class)
             ->set('newVariantProductId', $product->id)
             ->set('newVariantName', ' Maní ')
-            ->set('newVariantSku', 'CHO-MANI-2')
             ->set('newVariantPrice', '20.00')
             ->call('createVariant')
             ->assertHasErrors('newVariantName');

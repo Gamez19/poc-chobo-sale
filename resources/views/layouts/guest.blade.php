@@ -6,7 +6,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <meta name="theme-color" content="#3b2117">
 
-        <title>{{ config('app.name', 'Cacao Control') }} · Acceso</title>
+        <title>{{ config('app.name', 'Choco Aventuras') }} · Acceso</title>
         <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
@@ -22,7 +22,7 @@
                         <img src="{{ asset('images/chocobanano.png') }}" alt="" width="54" height="54">
                     </span>
                     <span>
-                        <strong>Cacao Control</strong>
+                        <strong>Choco Aventuras</strong>
                         <small>Inventario & ventas</small>
                     </span>
                 </a>
@@ -33,7 +33,7 @@
                     <p>Organizá tus materias primas, recetas y ventas desde un solo lugar.</p>
                 </div>
 
-                <div class="login-highlight" aria-label="Funciones de Cacao Control">
+                <div class="login-highlight" aria-label="Funciones de Choco Aventuras">
                     <span class="login-highlight-icon">✦</span>
                     <span>
                         <strong>Hecho para tu operación</strong>
@@ -42,16 +42,16 @@
                 </div>
             </section>
 
-            <section class="login-panel" aria-label="Acceso a Cacao Control">
+            <section class="login-panel" aria-label="Acceso a Choco Aventuras">
                 <div class="login-form-wrap">
                     <div class="login-mobile-brand">
                         <img src="{{ asset('images/chocobanano.png') }}" alt="Chocobanano" width="64" height="64">
-                        <span>Cacao Control</span>
+                        <span>Choco Aventuras</span>
                     </div>
 
                     {{ $slot }}
 
-                    <p class="login-footer">Acceso privado para el equipo de Cacao Control</p>
+                    <p class="login-footer">Acceso privado para el equipo de Choco Aventuras</p>
                 </div>
             </section>
         </main>
