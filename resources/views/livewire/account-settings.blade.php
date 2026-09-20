@@ -3,7 +3,7 @@
         <div>
             <p class="eyebrow">Cuenta</p>
             <h1>Configuración</h1>
-            <p class="page-description">Administrá tu contraseña y elegí cómo querés ver Cacao Control.</p>
+            <p class="page-description">Administrá tu contraseña y elegí cómo querés ver Choco Aventuras.</p>
         </div>
     </header>
 
