@@ -136,7 +136,6 @@
                             <dd>{{ \App\Support\Money::format($detailMaterial->unit_cost_cents) }}</dd>
                         </div>
                     </dl>
-                    <p class="table-secondary">La existencia y el costo unitario solo cambian con entradas de inventario.</p>
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" wire:click="openEdit({{ $detailMaterial->id }})">Editar</button>
                         <button type="button" class="btn btn-primary" wire:click="openRestock({{ $detailMaterial->id }})">Agregar entrada</button>
@@ -173,12 +172,24 @@
                             @error('editUnit') <span class="field-error">{{ $message }}</span> @enderror
                         </div>
                         <div class="form-group">
+                            <label for="edit-stock-quantity">Existencia actual</label>
+                            <input id="edit-stock-quantity" type="number" min="0" step="0.01" class="input" wire:model="editStockQuantity">
+                            @error('editStockQuantity') <span class="field-error">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-unit-cost">Costo por unidad</label>
+                            <div class="input-with-prefix">
+                                <span>C$</span>
+                                <input id="edit-unit-cost" type="number" min="0" step="0.01" class="input" wire:model="editUnitCost">
+                            </div>
+                            @error('editUnitCost') <span class="field-error">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="form-group">
                             <label for="edit-minimum">Nivel mínimo</label>
                             <input id="edit-minimum" type="number" min="0" step="0.01" class="input" wire:model="editMinimumStock">
                             @error('editMinimumStock') <span class="field-error">{{ $message }}</span> @enderror
                         </div>
                     </div>
-                    <p class="table-secondary">La existencia y el costo unitario solo cambian con entradas de inventario.</p>
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" wire:click="closeEdit">Cancelar</button>
                         <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">Guardar cambios</button>

@@ -38,8 +38,6 @@ class Products extends Component
 
     public string $newVariantName = '';
 
-    public string $newVariantSku = '';
-
     public string $newVariantPrice = '';
 
     public function mount(): void
@@ -77,11 +75,6 @@ class Products extends Component
     public function createVariant(): void
     {
         $this->newVariantName = trim($this->newVariantName);
-        $this->newVariantSku = Str::upper(trim($this->newVariantSku));
-
-        if ($this->newVariantSku === '') {
-            $this->newVariantSku = $this->generateVariantSku();
-        }
 
         $validated = $this->validate([
             'newVariantProductId' => [
@@ -97,12 +90,6 @@ class Products extends Component
                         ->where('product_id', $this->newVariantProductId)
                         ->whereNull('deleted_at')),
             ],
-            'newVariantSku' => [
-                'required',
-                'string',
-                'max:60',
-                Rule::unique('product_variants', 'sku')->whereNull('deleted_at'),
-            ],
             'newVariantPrice' => ['required', 'numeric', 'gt:0'],
         ], [
             'newVariantName.unique' => 'Ese producto ya tiene una variante con ese nombre.',
@@ -111,11 +98,11 @@ class Products extends Component
         ProductVariant::create([
             'product_id' => $validated['newVariantProductId'],
             'name' => $validated['newVariantName'],
-            'sku' => $validated['newVariantSku'],
+            'sku' => $this->generateVariantSku(),
             'price_cents' => Money::fromDecimal($validated['newVariantPrice']),
         ]);
 
-        $this->reset('newVariantName', 'newVariantSku', 'newVariantPrice');
+        $this->reset('newVariantName', 'newVariantPrice');
         $this->syncInputs();
         $this->statusMessage = 'Variante agregada correctamente.';
     }

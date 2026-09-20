@@ -1,4 +1,4 @@
-<div>
+<div class="dashboard-content">
     <header class="page-header">
         <div>
             <p class="eyebrow">Pulso del negocio</p>
@@ -14,20 +14,20 @@
     <section class="stats-grid" aria-label="Indicadores principales">
         <article class="stat-card is-featured">
             <div class="stat-label">
-                Ventas de hoy
-                <span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M4 17 10 11l4 4 6-8"/><path d="M14 7h6v6"/></svg></span>
-            </div>
-            <strong class="stat-value">{{ \App\Support\Money::format($salesTodayCents) }}</strong>
-            <span class="stat-meta">{{ number_format($unitsToday) }} unidades vendidas</span>
-        </article>
-
-        <article class="stat-card">
-            <div class="stat-label">
                 Inventario terminado
                 <span class="stat-icon"><svg viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="m4 7 8 4 8-4v10l-8 4-8-4V7Z"/></svg></span>
             </div>
             <strong class="stat-value">{{ number_format($finishedStock) }}</strong>
             <span class="stat-meta">unidades disponibles</span>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-label">
+                Ventas de hoy
+                <span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M4 17 10 11l4 4 6-8"/><path d="M14 7h6v6"/></svg></span>
+            </div>
+            <strong class="stat-value">{{ \App\Support\Money::format($salesTodayCents) }}</strong>
+            <span class="stat-meta">{{ number_format($unitsToday) }} unidades vendidas</span>
         </article>
 
         <article class="stat-card">
@@ -50,7 +50,7 @@
     </section>
 
     <div class="split-grid" style="margin-top:18px">
-        <section class="panel">
+        <section class="panel dashboard-stock-panel">
             <div class="panel-header">
                 <div>
                     <h2>Existencia por variante</h2>
@@ -65,7 +65,7 @@
                             <span class="avatar">{{ str($variant->name)->substr(0, 2)->upper() }}</span>
                             <span>
                                 <strong>{{ $variant->product->name }} · {{ $variant->name }}</strong>
-                                <small>{{ $variant->sku }} · {{ \App\Support\Money::format($variant->price_cents) }}</small>
+                                <small>{{ \App\Support\Money::format($variant->price_cents) }}</small>
                             </span>
                         </div>
                         <span class="stock-count">
@@ -82,7 +82,7 @@
             </div>
         </section>
 
-        <section class="panel">
+        <section class="panel dashboard-attention-panel">
             <div class="panel-header">
                 <div>
                     <h2>Atención requerida</h2>

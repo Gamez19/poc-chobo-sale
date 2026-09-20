@@ -45,6 +45,10 @@ class RawMaterials extends Component
 
     public string $editUnit = 'unidad';
 
+    public string $editStockQuantity = '';
+
+    public string $editUnitCost = '';
+
     public string $editMinimumStock = '';
 
     public function updatedSearch(): void
@@ -116,7 +120,7 @@ class RawMaterials extends Component
 
     public function closeEdit(): void
     {
-        $this->reset('editMaterialId', 'editName', 'editUnit', 'editMinimumStock');
+        $this->reset('editMaterialId', 'editName', 'editUnit', 'editStockQuantity', 'editUnitCost', 'editMinimumStock');
         $this->resetValidation();
     }
 
@@ -144,6 +148,8 @@ class RawMaterials extends Component
         $this->editMaterialId = $material->id;
         $this->editName = $material->name;
         $this->editUnit = $material->unit;
+        $this->editStockQuantity = number_format((float) $material->stock_quantity, 2, '.', '');
+        $this->editUnitCost = number_format($material->unit_cost_cents / 100, 2, '.', '');
         $this->editMinimumStock = number_format((float) $material->minimum_stock, 2, '.', '');
         $this->resetValidation();
     }
@@ -167,11 +173,15 @@ class RawMaterials extends Component
                     ->whereNull('deleted_at'),
             ],
             'editUnit' => ['required', Rule::in(RawMaterial::UNITS)],
+            'editStockQuantity' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
+            'editUnitCost' => ['required', 'numeric', 'min:0'],
             'editMinimumStock' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
         ], [
             'editName.required' => 'Escribe el nombre de la materia prima.',
             'editName.unique' => 'Ya existe una materia prima con ese nombre.',
             'editUnit.in' => 'Selecciona una unidad válida.',
+            'editStockQuantity.min' => 'La existencia no puede ser negativa.',
+            'editStockQuantity.decimal' => 'Usa como máximo dos decimales.',
             'editMinimumStock.min' => 'El nivel mínimo no puede ser negativo.',
             'editMinimumStock.decimal' => 'Usa como máximo dos decimales.',
         ]);
@@ -180,10 +190,12 @@ class RawMaterials extends Component
         $material->update([
             'name' => $validated['editName'],
             'unit' => $validated['editUnit'],
+            'stock_quantity' => number_format((float) $validated['editStockQuantity'], 3, '.', ''),
+            'unit_cost_cents' => Money::fromDecimal($validated['editUnitCost']),
             'minimum_stock' => $validated['editMinimumStock'],
         ]);
 
-        $this->reset('editMaterialId', 'editName', 'editUnit', 'editMinimumStock');
+        $this->closeEdit();
         session()->flash('success', 'Materia prima actualizada correctamente.');
     }
 
