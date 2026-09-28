@@ -29,24 +29,16 @@
         };
     @endphp
 
-    <div class="app-shell" x-data="{ sidebarExpanded: false }" :class="{ 'is-sidebar-expanded': sidebarExpanded }">
-        <aside class="sidebar">
+    <div class="app-shell" x-data="{ menuOpen: false }" :class="{ 'is-menu-open': menuOpen }" @keydown.escape.window="menuOpen = false">
+        <div class="sidebar-backdrop" x-cloak x-show="menuOpen" x-transition.opacity @click="menuOpen = false" aria-hidden="true"></div>
+        <aside class="sidebar" id="navigation-drawer" :aria-hidden="(! menuOpen).toString()">
             <div class="sidebar-header">
-                <a class="brand" href="{{ route('dashboard') }}" wire:navigate aria-label="Ir al resumen">
+                <a class="brand" href="{{ route('dashboard') }}" wire:navigate aria-label="Ir al resumen" @click="menuOpen = false">
                     <span class="brand-mark">C</span>
-                    <span class="brand-copy">
-                        <strong>Choco Aventuras</strong>
-                        <small>Inventario & ventas</small>
-                    </span>
                 </a>
 
-                <button class="sidebar-toggle" type="button" aria-expanded="false" aria-label="Expandir menú de navegación" @click="sidebarExpanded = ! sidebarExpanded" :aria-expanded="sidebarExpanded.toString()" :aria-label="sidebarExpanded ? 'Contraer menú de navegación' : 'Expandir menú de navegación'">
-                    <span class="sidebar-toggle-menu" aria-hidden="true">
-                        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-                    </span>
-                    <span class="sidebar-toggle-close" aria-hidden="true">
-                        <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg>
-                    </span>
+                <button class="sidebar-close" type="button" aria-label="Cerrar menú de navegación" @click="menuOpen = false">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
                 </button>
             </div>
 
@@ -55,6 +47,7 @@
                     <a href="{{ route($item['route']) }}"
                        wire:navigate
                        aria-label="{{ $item['label'] }}"
+                       @click="menuOpen = false"
                        @class(['nav-link', 'is-active' => request()->routeIs($item['route'])])>
                         <span class="nav-icon" aria-hidden="true">
                             @switch($item['icon'])
@@ -109,9 +102,14 @@
 
         <div class="main-area">
             <header class="topbar">
-                <div>
-                    <span class="topbar-kicker">OPERACIONES</span>
-                    <strong>{{ $title ?? 'Resumen' }}</strong>
+                <div class="topbar-leading">
+                    <button class="menu-toggle" type="button" aria-label="Abrir menú de navegación" aria-controls="navigation-drawer" :aria-expanded="menuOpen.toString()" @click="menuOpen = true">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+                    </button>
+                    <div class="topbar-heading">
+                        <span class="topbar-kicker">OPERACIONES</span>
+                        <strong>{{ $title ?? 'Resumen' }}</strong>
+                    </div>
                 </div>
                 <div class="topbar-actions">
                     <p class="user-greeting">{{ $greeting }}, {{ auth()->user()?->name }}</p>
