@@ -64,7 +64,7 @@
                         <div class="stock-name">
                             <span class="avatar">{{ str($variant->name)->substr(0, 2)->upper() }}</span>
                             <span>
-                                <strong>{{ $variant->product->name }} · {{ $variant->name }}</strong>
+                                <strong>{{ $variant->name }}</strong>
                                 <small>{{ \App\Support\Money::format($variant->price_cents) }}</small>
                             </span>
                         </div>
