@@ -65,9 +65,9 @@
             <div class="panel-header">
                 <div>
                     <h2>Historial de compras</h2>
-                    <p>Gastado este mes: {{ \App\Support\Money::format($monthSpentCents) }}</p>
+                    <p>Últimas 5 compras · Gastado este mes: {{ \App\Support\Money::format($monthSpentCents) }}</p>
                 </div>
-                <span class="badge neutral">{{ $purchases->total() }} {{ $purchases->total() === 1 ? 'compra' : 'compras' }}</span>
+                <a href="{{ route('reports.purchases') }}" class="btn btn-secondary btn-sm" wire:navigate>Ver reporte</a>
             </div>
             <ul class="material-list" role="list">
                 @forelse ($purchases as $purchase)
@@ -89,9 +89,6 @@
                     <li><div class="empty-state"><strong>Todavía no registras compras</strong><p>Usa el formulario para anotar lo que gastaste.</p></div></li>
                 @endforelse
             </ul>
-            @if ($purchases->hasPages())
-                <div class="panel-body pagination-wrap">{{ $purchases->links() }}</div>
-            @endif
         </section>
     </div>
 

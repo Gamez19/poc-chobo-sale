@@ -18,6 +18,8 @@ class RawMaterials extends Component
 {
     use WithPagination;
 
+    private const RECENT_PURCHASES_LIMIT = 5;
+
     public string $search = '';
 
     public string $name = '';
@@ -190,7 +192,8 @@ class RawMaterials extends Component
                 ->with(['rawMaterials' => fn ($query) => $query->orderBy('name')])
                 ->latest('purchased_at')
                 ->latest('id')
-                ->paginate(10, pageName: 'purchasesPage'),
+                ->limit(self::RECENT_PURCHASES_LIMIT)
+                ->get(),
             'monthSpentCents' => (int) Purchase::query()
                 ->whereBetween('purchased_at', [today()->startOfMonth(), today()->endOfMonth()])
                 ->sum('total_cents'),
