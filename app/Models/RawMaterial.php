@@ -11,17 +11,6 @@ class RawMaterial extends Model
 {
     use SoftDeletes;
 
-    public const UNITS = [
-        'unidad',
-        'gramos',
-        'kilogramos',
-        'kg',
-        'mililitros',
-        'paquete',
-        'libra',
-        'onzas',
-    ];
-
     protected $fillable = [
         'name',
         'unit',
@@ -54,10 +43,5 @@ class RawMaterial extends Model
     public function purchases(): BelongsToMany
     {
         return $this->belongsToMany(Purchase::class);
-    }
-
-    public function isLowStock(): bool
-    {
-        return (float) $this->stock_quantity <= (float) $this->minimum_stock;
     }
 }

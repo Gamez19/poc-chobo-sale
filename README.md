@@ -4,10 +4,11 @@ Sistema en español para administrar inventario, producción por lotes y ventas.
 
 ## Funcionalidad
 
-- Panel con ventas del día, existencias y alertas de insumos.
-- Materias primas con entradas, costo promedio ponderado, unidad de medida y nivel mínimo.
-- Productos con variantes, precio y receta independientes.
-- Producción por lotes que consume automáticamente las materias primas de las recetas.
+- Panel con ventas del día, existencias y compras del mes.
+- Catálogo de materias primas por nombre y registro de compras con total gastado y checklist de insumos.
+- Productos con variantes y precio independientes.
+- Producción por lotes sin depender del stock de materias primas.
+- Ganancias por período: ventas menos compras.
 - Registro de ventas con asignación FIFO al lote más antiguo disponible.
 - Precio histórico guardado en cada venta, aunque luego cambie el precio de la variante.
 - Reportes filtrables por fecha y lote, con ingresos y unidades por categoría.
@@ -52,9 +53,8 @@ npm run build
 
 La lógica crítica vive en servicios transaccionales para mantener los componentes Livewire pequeños y evitar duplicación:
 
-- `ProductionService`: valida recetas y stock, crea lotes y registra consumo de materias primas.
+- `ProductionService`: valida fechas y cantidades, y crea o ajusta lotes de producción.
 - `SalesService`: valida existencias, asigna unidades por FIFO y conserva precios históricos.
-- `RawMaterialStockService`: registra entradas y recalcula el costo promedio ponderado.
 
 Los importes monetarios se almacenan como centavos enteros para evitar errores de precisión. Las ventas se relacionan con los lotes mediante asignaciones explícitas, lo que permite reportes confiables por fecha y lote.
 
