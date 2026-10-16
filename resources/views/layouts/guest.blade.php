@@ -30,7 +30,7 @@
                 <div class="login-visual-copy">
                     <p class="login-eyebrow">Control de inventario</p>
                     <h1 id="login-brand-title">Todo el sabor,<br><em>todo bajo control.</em></h1>
-                    <p>Organizá tus materias primas, recetas y ventas desde un solo lugar.</p>
+                    <p>Organizá tus compras, producción y ventas desde un solo lugar.</p>
                 </div>
 
                 <div class="login-highlight" aria-label="Funciones de Choco Aventuras">

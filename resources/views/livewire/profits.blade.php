@@ -2,8 +2,8 @@
     <header class="page-header">
         <div>
             <p class="eyebrow">Rentabilidad</p>
-            <h1>Ganancias reales y proyectadas</h1>
-            <p class="page-description">Compara lo ganado en ventas con el margen que todavía puede generar el inventario disponible.</p>
+            <h1>Ganancias del período</h1>
+            <p class="page-description">Ventas menos compras del período seleccionado.</p>
         </div>
     </header>
 
@@ -11,7 +11,7 @@
         <div class="panel-header">
             <div>
                 <h2>Filtros</h2>
-                <p>La ganancia real usa la fecha de venta; la proyectada, la fecha de producción.</p>
+                <p>Las ventas usan la fecha de venta; las compras, la fecha de compra.</p>
             </div>
         </div>
         <div class="panel-body">
@@ -24,15 +24,6 @@
                     <label for="profit-date-to">Hasta</label>
                     <input id="profit-date-to" type="date" class="input" wire:model.live="dateTo">
                 </div>
-                <div class="form-group">
-                    <label for="profit-lot-filter">Lote</label>
-                    <select id="profit-lot-filter" class="select" wire:model.live="lotId">
-                        <option value="">Todos los lotes</option>
-                        @foreach ($lots as $lot)
-                            <option value="{{ $lot->id }}">{{ $lot->code }} · {{ $lot->produced_at->format('d/m/Y') }}</option>
-                        @endforeach
-                    </select>
-                </div>
                 <a href="{{ route('profits') }}" wire:navigate class="btn btn-secondary">Limpiar</a>
             </div>
             @error('dateFrom')
@@ -43,19 +34,24 @@
 
     <section class="profit-summary" aria-label="Resumen de ganancias">
         <article class="mini-stat">
-            <small>Ganancia real</small>
-            <strong>{{ \App\Support\Money::format($realizedProfitCents) }}</strong>
-            <span class="table-secondary">Ingresos menos costo de lo vendido</span>
+            <small>Ventas</small>
+            <strong>{{ \App\Support\Money::format($salesCents) }}</strong>
+            <span class="table-secondary">Total vendido en el período</span>
         </article>
         <article class="mini-stat">
-            <small>Ganancia proyectada</small>
-            <strong>{{ \App\Support\Money::format($projectedProfitCents) }}</strong>
-            <span class="table-secondary">Margen del stock disponible</span>
+            <small>Compras</small>
+            <strong>{{ \App\Support\Money::format($purchasesCents) }}</strong>
+            <span class="table-secondary">Total gastado en el período</span>
+        </article>
+        <article class="mini-stat">
+            <small>Ganancia real</small>
+            <strong>{{ \App\Support\Money::format($profitCents) }}</strong>
+            <span class="table-secondary">Ventas menos compras</span>
         </article>
         <article class="mini-stat is-highlighted">
             <small>Margen real</small>
-            <strong>{{ $realizedMarginPercent }} %</strong>
-            <span class="table-secondary">Ganancia real sobre los ingresos reales del período</span>
+            <strong>{{ $marginPercent }} %</strong>
+            <span class="table-secondary">Ganancia real sobre las ventas del período</span>
         </article>
     </section>
 
@@ -63,39 +59,35 @@
         <section class="panel">
             <div class="panel-header">
                 <div>
-                    <h2>Ganancia real por lote</h2>
-                    <p>Ventas asignadas al costo real de producción</p>
+                    <h2>Ventas por variante</h2>
+                    <p>Unidades e ingresos del período</p>
                 </div>
-                <span class="badge neutral">{{ $realizedRows->count() }} resultados</span>
+                <span class="badge neutral">{{ $salesRows->count() }} {{ $salesRows->count() === 1 ? 'resultado' : 'resultados' }}</span>
             </div>
             <div class="responsive-table desktop-only">
                 <table class="data-table">
-                    <thead><tr><th>Lote</th><th>Variante</th><th class="text-right">Unidades</th><th class="text-right">Ingresos</th><th class="text-right">Costo</th><th class="text-right">Ganancia</th></tr></thead>
+                    <thead><tr><th>Variante</th><th class="text-right">Unidades</th><th class="text-right">Ingresos</th></tr></thead>
                     <tbody>
-                    @forelse ($realizedRows as $row)
-                        <tr>
-                            <td><span class="table-primary">{{ $row['lot']->code }}</span><span class="table-secondary">{{ $row['lot']->produced_at->translatedFormat('d M Y') }}</span></td>
-                            <td><span class="table-primary">{{ $row['variant_name'] }}</span><span class="table-secondary">{{ $row['variant']->product->name }}</span></td>
+                    @forelse ($salesRows as $row)
+                        <tr wire:key="sales-row-{{ $loop->index }}">
+                            <td><span class="table-primary">{{ $row['variant_name'] }}</span></td>
                             <td class="text-right amount">{{ number_format($row['units']) }}</td>
                             <td class="text-right amount">{{ \App\Support\Money::format($row['revenue_cents']) }}</td>
-                            <td class="text-right amount">{{ \App\Support\Money::format($row['cost_cents']) }}</td>
-                            <td class="text-right amount">{{ \App\Support\Money::format($row['profit_cents']) }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="6"><div class="empty-state"><strong>No hay ventas para estos filtros</strong><p>Prueba con otro rango o lote.</p></div></td></tr>
+                        <tr><td colspan="3"><div class="empty-state"><strong>No hay ventas para estos filtros</strong><p>Prueba con otro rango.</p></div></td></tr>
                     @endforelse
                     </tbody>
                 </table>
             </div>
             <div class="mobile-card-list mobile-only">
-                @forelse ($realizedRows as $row)
-                    <article class="mobile-data-card">
-                        <div class="mobile-data-card-head"><strong>{{ $row['variant_name'] }}</strong><span class="badge success">{{ \App\Support\Money::format($row['profit_cents']) }}</span></div>
-                        <small>{{ $row['lot']->code }} · {{ $row['lot']->produced_at->translatedFormat('d M Y') }}</small>
-                        <dl class="mobile-data-grid"><div><dt>Unidades</dt><dd>{{ number_format($row['units']) }}</dd></div><div><dt>Ingresos</dt><dd>{{ \App\Support\Money::format($row['revenue_cents']) }}</dd></div><div><dt>Costo</dt><dd>{{ \App\Support\Money::format($row['cost_cents']) }}</dd></div></dl>
+                @forelse ($salesRows as $row)
+                    <article class="mobile-data-card" wire:key="sales-card-{{ $loop->index }}">
+                        <div class="mobile-data-card-head"><strong>{{ $row['variant_name'] }}</strong><span class="badge success">{{ \App\Support\Money::format($row['revenue_cents']) }}</span></div>
+                        <dl class="mobile-data-grid"><div><dt>Unidades</dt><dd>{{ number_format($row['units']) }}</dd></div></dl>
                     </article>
                 @empty
-                    <div class="empty-state"><strong>No hay ventas para estos filtros</strong><p>Prueba con otro rango o lote.</p></div>
+                    <div class="empty-state"><strong>No hay ventas para estos filtros</strong><p>Prueba con otro rango.</p></div>
                 @endforelse
             </div>
         </section>
@@ -103,39 +95,75 @@
         <section class="panel">
             <div class="panel-header">
                 <div>
-                    <h2>Ganancia proyectada</h2>
-                    <p>Stock disponible al precio de venta actual</p>
+                    <h2>Compras del período</h2>
+                    <p>Gastos registrados en el rango</p>
                 </div>
-                <span class="badge neutral">{{ $projectedRows->count() }} resultados</span>
+                <span class="badge neutral">{{ $purchases->count() }} {{ $purchases->count() === 1 ? 'resultado' : 'resultados' }}</span>
             </div>
             <div class="responsive-table desktop-only">
                 <table class="data-table">
-                    <thead><tr><th>Lote</th><th>Variante</th><th class="text-right">Stock</th><th class="text-right">Ingreso posible</th><th class="text-right">Costo</th><th class="text-right">Ganancia</th></tr></thead>
+                    <thead><tr><th>Fecha</th><th>Insumos</th><th>Notas</th><th class="text-right">Total</th></tr></thead>
                     <tbody>
-                    @forelse ($projectedRows as $row)
-                        <tr>
-                            <td><span class="table-primary">{{ $row['lot']->code }}</span><span class="table-secondary">{{ $row['lot']->produced_at->translatedFormat('d M Y') }}</span></td>
-                            <td><span class="table-primary">{{ $row['variant_name'] }}</span><span class="table-secondary">{{ $row['variant']->product->name }}</span></td>
-                            <td class="text-right amount">{{ number_format($row['units']) }}</td>
-                            <td class="text-right amount">{{ \App\Support\Money::format($row['revenue_cents']) }}</td>
-                            <td class="text-right amount">{{ \App\Support\Money::format($row['cost_cents']) }}</td>
-                            <td class="text-right amount">{{ \App\Support\Money::format($row['profit_cents']) }}</td>
+                    @forelse ($purchases as $purchase)
+                        <tr wire:key="purchase-row-{{ $purchase->id }}">
+                            <td>{{ $purchase->purchased_at->translatedFormat('d M Y') }}</td>
+                            <td>{{ $purchase->rawMaterials->pluck('name')->join(', ') ?: '—' }}</td>
+                            <td>{{ $purchase->notes ?: '—' }}</td>
+                            <td class="text-right amount">{{ \App\Support\Money::format($purchase->total_cents) }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="6"><div class="empty-state"><strong>No hay stock proyectable</strong><p>Elige otro rango o lote.</p></div></td></tr>
+                        <tr><td colspan="4"><div class="empty-state"><strong>No hay compras para estos filtros</strong><p>Prueba con otro rango.</p></div></td></tr>
                     @endforelse
                     </tbody>
                 </table>
             </div>
             <div class="mobile-card-list mobile-only">
-                @forelse ($projectedRows as $row)
-                    <article class="mobile-data-card">
-                        <div class="mobile-data-card-head"><strong>{{ $row['variant_name'] }}</strong><span class="badge warning">{{ \App\Support\Money::format($row['profit_cents']) }}</span></div>
-                        <small>{{ $row['lot']->code }} · {{ $row['lot']->produced_at->translatedFormat('d M Y') }}</small>
-                        <dl class="mobile-data-grid"><div><dt>Stock</dt><dd>{{ number_format($row['units']) }}</dd></div><div><dt>Ingreso posible</dt><dd>{{ \App\Support\Money::format($row['revenue_cents']) }}</dd></div><div><dt>Costo</dt><dd>{{ \App\Support\Money::format($row['cost_cents']) }}</dd></div></dl>
+                @forelse ($purchases as $purchase)
+                    <article class="mobile-data-card" wire:key="purchase-card-{{ $purchase->id }}">
+                        <div class="mobile-data-card-head"><strong>{{ $purchase->purchased_at->translatedFormat('d M Y') }}</strong><span class="badge warning">{{ \App\Support\Money::format($purchase->total_cents) }}</span></div>
+                        <small>{{ $purchase->rawMaterials->pluck('name')->join(', ') ?: '—' }}</small>
+                        @if ($purchase->notes)
+                            <small>{{ $purchase->notes }}</small>
+                        @endif
                     </article>
                 @empty
-                    <div class="empty-state"><strong>No hay stock proyectable</strong><p>Elige otro rango o lote.</p></div>
+                    <div class="empty-state"><strong>No hay compras para estos filtros</strong><p>Prueba con otro rango.</p></div>
+                @endforelse
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2>Ingreso potencial</h2>
+                    <p>Stock disponible al precio de venta actual: {{ \App\Support\Money::format($potentialRevenueCents) }}</p>
+                </div>
+                <span class="badge neutral">{{ $potentialRows->count() }} {{ $potentialRows->count() === 1 ? 'resultado' : 'resultados' }}</span>
+            </div>
+            <div class="responsive-table desktop-only">
+                <table class="data-table">
+                    <thead><tr><th>Variante</th><th class="text-right">Stock</th><th class="text-right">Ingreso posible</th></tr></thead>
+                    <tbody>
+                    @forelse ($potentialRows as $row)
+                        <tr wire:key="potential-row-{{ $loop->index }}">
+                            <td><span class="table-primary">{{ $row['variant_name'] }}</span></td>
+                            <td class="text-right amount">{{ number_format($row['units']) }}</td>
+                            <td class="text-right amount">{{ \App\Support\Money::format($row['revenue_cents']) }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="3"><div class="empty-state"><strong>No hay stock disponible</strong><p>Registra producción para ver el ingreso potencial.</p></div></td></tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="mobile-card-list mobile-only">
+                @forelse ($potentialRows as $row)
+                    <article class="mobile-data-card" wire:key="potential-card-{{ $loop->index }}">
+                        <div class="mobile-data-card-head"><strong>{{ $row['variant_name'] }}</strong><span class="badge warning">{{ \App\Support\Money::format($row['revenue_cents']) }}</span></div>
+                        <dl class="mobile-data-grid"><div><dt>Stock</dt><dd>{{ number_format($row['units']) }}</dd></div></dl>
+                    </article>
+                @empty
+                    <div class="empty-state"><strong>No hay stock disponible</strong><p>Registra producción para ver el ingreso potencial.</p></div>
                 @endforelse
             </div>
         </section>

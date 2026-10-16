@@ -4,7 +4,7 @@ namespace App\Livewire;
 
 use App\Models\ProductionLot;
 use App\Models\ProductVariant;
-use App\Models\RawMaterial;
+use App\Models\Purchase;
 use App\Models\Sale;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -29,11 +29,9 @@ class Dashboard extends Component
                 ->withSum('availableLotItems as available_stock', 'quantity_available')
                 ->get()
                 ->sum('available_stock'),
-            'lowMaterials' => RawMaterial::query()
-                ->where('active', true)
-                ->whereColumn('stock_quantity', '<=', 'minimum_stock')
-                ->orderBy('stock_quantity')
-                ->get(),
+            'monthPurchasesCents' => (int) Purchase::query()
+                ->whereBetween('purchased_at', [today()->startOfMonth(), today()->endOfMonth()])
+                ->sum('total_cents'),
             'variants' => ProductVariant::query()
                 ->where('active', true)
                 ->with('product')

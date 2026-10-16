@@ -74,7 +74,7 @@ class ProductionLots extends Component
         ProductVariant::query()->pluck('id')->each(
             fn ($id) => $this->variantQuantities[$id] = 0
         );
-        session()->flash('success', "Lote {$lot->code} creado y materias primas descontadas.");
+        session()->flash('success', "Lote {$lot->code} creado.");
     }
 
     public function openEdit(int $lotId): void

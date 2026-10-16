@@ -5,6 +5,7 @@ use App\Livewire\Dashboard;
 use App\Livewire\ProductionLots;
 use App\Livewire\Products;
 use App\Livewire\Profits;
+use App\Livewire\PurchaseReports;
 use App\Livewire\RawMaterials;
 use App\Livewire\Reports;
 use App\Livewire\Sales;
@@ -17,6 +18,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/lotes', ProductionLots::class)->name('production-lots');
     Route::get('/ventas', Sales::class)->name('sales');
     Route::get('/reportes', Reports::class)->name('reports');
+    Route::get('/reportes/compras', PurchaseReports::class)->name('reports.purchases');
     Route::get('/ganancias', Profits::class)->name('profits');
     Route::get('/configuracion', AccountSettings::class)->name('settings');
 });

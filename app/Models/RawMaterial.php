@@ -3,23 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class RawMaterial extends Model
 {
     use SoftDeletes;
-
-    public const UNITS = [
-        'unidad',
-        'gramos',
-        'kilogramos',
-        'kg',
-        'mililitros',
-        'paquete',
-        'libra',
-        'onzas',
-    ];
 
     protected $fillable = [
         'name',
@@ -50,8 +40,8 @@ class RawMaterial extends Model
         return $this->hasMany(RawMaterialMovement::class);
     }
 
-    public function isLowStock(): bool
+    public function purchases(): BelongsToMany
     {
-        return (float) $this->stock_quantity <= (float) $this->minimum_stock;
+        return $this->belongsToMany(Purchase::class);
     }
 }

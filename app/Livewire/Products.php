@@ -4,8 +4,6 @@ namespace App\Livewire;
 
 use App\Models\Product;
 use App\Models\ProductVariant;
-use App\Models\RawMaterial;
-use App\Models\RecipeItem;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -23,8 +21,6 @@ class Products extends Component
     private const VARIANT_SKU_MAX_LENGTH = 60;
 
     public array $prices = [];
-
-    public array $recipeQuantities = [];
 
     public array $variantNames = [];
 
@@ -180,10 +176,6 @@ class Products extends Component
         $variant = ProductVariant::withTrashed()->findOrFail($variantId);
 
         DB::transaction(function () use ($variant): void {
-            RecipeItem::withTrashed()
-                ->where('product_variant_id', $variant->id)
-                ->get()
-                ->each(fn (RecipeItem $item): ?bool => $item->delete());
             $variant->update(['active' => false]);
             $variant->delete();
         });
@@ -199,10 +191,6 @@ class Products extends Component
         DB::transaction(function () use ($variant): void {
             $variant->restore();
             $variant->update(['active' => true]);
-            RecipeItem::withTrashed()
-                ->where('product_variant_id', $variant->id)
-                ->get()
-                ->each(fn (RecipeItem $item): ?bool => $item->restore());
         });
 
         $this->syncInputs();
@@ -224,65 +212,13 @@ class Products extends Component
         $this->statusMessage = 'Precio actualizado. Las ventas anteriores conservan su precio original.';
     }
 
-    public function saveRecipe(int $variantId): void
-    {
-        ProductVariant::findOrFail($variantId);
-
-        $this->validate([
-            "recipeQuantities.$variantId.*" => ['nullable', 'numeric', 'min:0'],
-        ]);
-
-        DB::transaction(function () use ($variantId) {
-            $activeMaterialIds = RawMaterial::query()
-                ->where('active', true)
-                ->pluck('id');
-            $recipeMaterialIds = RecipeItem::withTrashed()
-                ->where('product_variant_id', $variantId)
-                ->pluck('raw_material_id');
-
-            foreach ($activeMaterialIds->merge($recipeMaterialIds)->unique() as $materialId) {
-                $quantity = (float) ($this->recipeQuantities[$variantId][$materialId] ?? 0);
-                $items = RecipeItem::withTrashed()
-                    ->where('product_variant_id', $variantId)
-                    ->where('raw_material_id', $materialId)
-                    ->get();
-
-                if ($quantity > 0) {
-                    $item = $items->first() ?? new RecipeItem([
-                        'product_variant_id' => $variantId,
-                        'raw_material_id' => $materialId,
-                    ]);
-                    $item->quantity_required = number_format($quantity, 3, '.', '');
-
-                    if ($item->trashed()) {
-                        $item->restore();
-                    } else {
-                        $item->save();
-                    }
-                } else {
-                    $items->each(fn (RecipeItem $item): ?bool => $item->delete());
-                }
-            }
-        });
-
-        $this->syncInputs();
-        $this->statusMessage = 'Receta actualizada.';
-    }
-
     private function syncInputs(): void
     {
         ProductVariant::withTrashed()
-            ->with(['recipeItems' => fn ($query) => $query->withTrashed()->with('rawMaterial')])
             ->get()
             ->each(function ($variant) {
                 $this->prices[$variant->id] = number_format($variant->price_cents / 100, 2, '.', '');
                 $this->variantNames[$variant->id] = $variant->name;
-
-                foreach ($variant->recipeItems as $item) {
-                    $this->recipeQuantities[$variant->id][$item->raw_material_id] = $item->trashed()
-                        ? '0'
-                        : rtrim(rtrim($item->quantity_required, '0'), '.');
-                }
             });
     }
 
@@ -292,19 +228,8 @@ class Products extends Component
             'products' => Product::query()
                 ->with(['variants' => fn ($query) => $query
                     ->withTrashed()
-                    ->with(['recipeItems' => fn ($recipeQuery) => $recipeQuery
-                        ->withTrashed()
-                        ->with('rawMaterial')])
                     ->withSum('availableLotItems as available_stock', 'quantity_available')
                     ->orderBy('name')])
-                ->orderBy('name')
-                ->get(),
-            'materials' => RawMaterial::withTrashed()
-                ->where(fn ($query) => $query
-                    ->where(fn ($activeQuery) => $activeQuery
-                        ->where('active', true)
-                        ->whereNull('deleted_at'))
-                    ->orWhereHas('recipeItems', fn ($recipeQuery) => $recipeQuery->withTrashed()))
                 ->orderBy('name')
                 ->get(),
         ]);

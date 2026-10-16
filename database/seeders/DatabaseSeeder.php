@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Product;
-use App\Models\ProductVariant;
+use App\Models\Purchase;
 use App\Models\RawMaterial;
 use App\Services\ProductionService;
 use App\Services\SalesService;
@@ -16,28 +16,20 @@ class DatabaseSeeder extends Seeder
         $this->call(UserSeeder::class);
 
         $materials = collect([
-            ['key' => 'banana', 'name' => 'Banano', 'unit' => 'unidad', 'stock_quantity' => 180, 'unit_cost_cents' => 300, 'minimum_stock' => 30],
-            ['key' => 'chocolate', 'name' => 'Chocolate para cobertura', 'unit' => 'gramos', 'stock_quantity' => 9000, 'unit_cost_cents' => 18, 'minimum_stock' => 1200],
-            ['key' => 'peanut', 'name' => 'Maní triturado', 'unit' => 'gramos', 'stock_quantity' => 2000, 'unit_cost_cents' => 12, 'minimum_stock' => 300],
-            ['key' => 'sprinkles', 'name' => 'Chispitas', 'unit' => 'gramos', 'stock_quantity' => 1500, 'unit_cost_cents' => 15, 'minimum_stock' => 250],
-            ['key' => 'stick', 'name' => 'Palillos', 'unit' => 'unidad', 'stock_quantity' => 200, 'unit_cost_cents' => 25, 'minimum_stock' => 40],
-            ['key' => 'bag', 'name' => 'Bolsas individuales', 'unit' => 'unidad', 'stock_quantity' => 180, 'unit_cost_cents' => 50, 'minimum_stock' => 30],
-        ])->mapWithKeys(function (array $data) {
-            $key = $data['key'];
-            unset($data['key']);
+            'Banano',
+            'Chocolate para cobertura',
+            'Maní triturado',
+            'Chispitas',
+            'Palillos',
+            'Bolsas individuales',
+        ])->map(fn (string $name): RawMaterial => RawMaterial::create(['name' => $name, 'unit' => 'unidad']));
 
-            return [$key => RawMaterial::create($data)];
-        });
-
-        foreach ($materials as $material) {
-            $material->movements()->create([
-                'type' => 'initial',
-                'quantity' => $material->stock_quantity,
-                'unit_cost_cents' => $material->unit_cost_cents,
-                'occurred_at' => now()->subDays(3),
-                'notes' => 'Inventario de demostración',
-            ]);
-        }
+        $purchase = Purchase::create([
+            'purchased_at' => today()->subDays(2),
+            'total_cents' => 33000,
+            'notes' => '5 docenas de bananos y 3 bolsas de chocolate',
+        ]);
+        $purchase->rawMaterials()->sync($materials->take(2)->pluck('id'));
 
         $product = Product::create([
             'name' => 'Chocobanano',
@@ -55,17 +47,6 @@ class DatabaseSeeder extends Seeder
 
             return [$key => $product->variants()->create($data)];
         });
-
-        $baseRecipe = [
-            $materials['banana']->id => 1,
-            $materials['chocolate']->id => 40,
-            $materials['stick']->id => 1,
-            $materials['bag']->id => 1,
-        ];
-
-        $this->attachRecipe($variants['simple'], $baseRecipe);
-        $this->attachRecipe($variants['peanut'], $baseRecipe + [$materials['peanut']->id => 10]);
-        $this->attachRecipe($variants['sprinkles'], $baseRecipe + [$materials['sprinkles']->id => 8]);
 
         app(ProductionService::class)->createLot([
             'code' => 'LOTE-CHOCO-001',
@@ -88,18 +69,5 @@ class DatabaseSeeder extends Seeder
             $variants['simple']->id => 2,
             $variants['sprinkles']->id => 1,
         ], now()->setTime(15, 15), 'Venta de hoy');
-    }
-
-    /**
-     * @param  array<int, int|float>  $recipe
-     */
-    private function attachRecipe(ProductVariant $variant, array $recipe): void
-    {
-        foreach ($recipe as $materialId => $quantity) {
-            $variant->recipeItems()->create([
-                'raw_material_id' => $materialId,
-                'quantity_required' => $quantity,
-            ]);
-        }
     }
 }

@@ -3,7 +3,7 @@
         <div>
             <p class="eyebrow">Producción</p>
             <h1>Lotes</h1>
-            <p class="page-description">Agrega productos terminados por lote y descuenta automáticamente los insumos de cada receta.</p>
+            <p class="page-description">Agrega productos terminados por lote.</p>
         </div>
     </header>
 
@@ -76,7 +76,7 @@
                 <p>Últimos 12 lotes de producción</p>
             </div>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap desktop-only">
             <table class="data-table">
                 <thead>
                     <tr><th>Lote</th><th>Producción</th><th>Contenido</th><th>Disponible</th><th>Estado</th><th></th></tr>
@@ -105,6 +105,29 @@
                 @endforelse
                 </tbody>
             </table>
+        </div>
+        <div class="mobile-card-list mobile-only">
+            @forelse ($lots as $lot)
+                <article class="mobile-data-card" wire:key="lot-card-{{ $lot->id }}">
+                    <div class="mobile-data-card-head">
+                        <strong>{{ $lot->code }}</strong>
+                        <span class="badge {{ $lot->status === 'open' ? 'success' : 'neutral' }}">{{ $lot->status === 'open' ? 'Activo' : 'Agotado' }}</span>
+                    </div>
+                    <small>{{ $lot->expires_at ? 'Vence '.$lot->expires_at->translatedFormat('d M Y') : 'Sin vencimiento' }}</small>
+                    <dl class="mobile-data-grid cols-2">
+                        <div><dt>Producción</dt><dd>{{ $lot->produced_at->translatedFormat('d M Y') }}</dd></div>
+                        <div><dt>Disponible</dt><dd>{{ $lot->items->sum('quantity_available') }} / {{ $lot->items->sum('quantity_produced') }}</dd></div>
+                    </dl>
+                    @if ($lot->items->isNotEmpty())
+                        <small>{{ $lot->items->map(fn ($item) => $item->productVariant->name.': '.$item->quantity_produced)->join(' · ') }}</small>
+                    @endif
+                    <div class="mobile-data-card-actions">
+                        <button type="button" class="btn btn-soft btn-sm" wire:click="openEdit({{ $lot->id }})">Editar</button>
+                    </div>
+                </article>
+            @empty
+                <div class="empty-state"><strong>Aún no hay lotes</strong><p>Registra la primera producción.</p></div>
+            @endforelse
         </div>
     </section>
 
@@ -156,7 +179,7 @@
                                         <strong>{{ $item->productVariant->name }}</strong>
                                         <small>{{ $item->productVariant->product->name }}</small>
                                     </span>
-                                    <span class="badge neutral">{{ $item->quantity_available }} disponibles</span>
+                                    <span class="badge neutral">{{ $item->quantity_available }} {{ $item->quantity_available === 1 ? 'disponible' : 'disponibles' }}</span>
                                 </div>
                                 <input type="number" min="0" step="1" class="input"
                                        aria-label="Cantidad producida de {{ $item->productVariant->name }}"

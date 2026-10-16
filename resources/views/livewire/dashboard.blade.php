@@ -41,77 +41,45 @@
 
         <article class="stat-card">
             <div class="stat-label">
-                Alertas de insumos
-                <span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.7 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z"/></svg></span>
+                Compras del mes
+                <span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9h-12L6 6Zm0 0L5 3H2"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg></span>
             </div>
-            <strong class="stat-value">{{ $lowMaterials->count() }}</strong>
-            <span class="stat-meta">{{ $lowMaterials->isEmpty() ? 'Inventario saludable' : 'requieren atención' }}</span>
+            <strong class="stat-value">{{ \App\Support\Money::format($monthPurchasesCents) }}</strong>
+            <span class="stat-meta">gastado en insumos</span>
         </article>
     </section>
 
-    <div class="split-grid" style="margin-top:18px">
-        <section class="panel dashboard-stock-panel">
-            <div class="panel-header">
-                <div>
-                    <h2>Existencia por variante</h2>
-                    <p>Productos listos para vender</p>
-                </div>
-                <a href="{{ route('production-lots') }}" class="btn btn-secondary btn-sm" wire:navigate>Nuevo lote</a>
+    <section class="panel dashboard-stock-panel" style="margin-top:18px">
+        <div class="panel-header">
+            <div>
+                <h2>Existencia por variante</h2>
+                <p>Productos listos para vender</p>
             </div>
-            <div class="panel-body stock-list">
-                @forelse ($variants as $variant)
-                    <div class="stock-row">
-                        <div class="stock-name">
-                            <span class="avatar">{{ str($variant->name)->substr(0, 2)->upper() }}</span>
-                            <span>
-                                <strong>{{ $variant->name }}</strong>
-                                <small>{{ \App\Support\Money::format($variant->price_cents) }}</small>
-                            </span>
-                        </div>
-                        <span class="stock-count">
-                            {{ number_format($variant->available_stock ?? 0) }}
-                            <small>disponibles</small>
+            <a href="{{ route('production-lots') }}" class="btn btn-secondary btn-sm" wire:navigate>Nuevo lote</a>
+        </div>
+        <div class="panel-body stock-list">
+            @forelse ($variants as $variant)
+                <div class="stock-row">
+                    <div class="stock-name">
+                        <span class="avatar">{{ str($variant->name)->substr(0, 2)->upper() }}</span>
+                        <span>
+                            <strong>{{ $variant->name }}</strong>
+                            <small>{{ \App\Support\Money::format($variant->price_cents) }}</small>
                         </span>
                     </div>
-                @empty
-                    <div class="empty-state">
-                        <strong>Aún no hay productos</strong>
-                        <p>Crea tu primer producto y configura sus variantes.</p>
-                    </div>
-                @endforelse
-            </div>
-        </section>
-
-        <section class="panel dashboard-attention-panel">
-            <div class="panel-header">
-                <div>
-                    <h2>Atención requerida</h2>
-                    <p>Materias primas en nivel mínimo</p>
+                    <span class="stock-count">
+                        {{ number_format($variant->available_stock ?? 0) }}
+                        <small>disponibles</small>
+                    </span>
                 </div>
-            </div>
-            <div class="panel-body">
-                @if ($lowMaterials->isEmpty())
-                    <div class="empty-state">
-                        <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
-                        <strong>Todo abastecido</strong>
-                        <p>No hay insumos por debajo del mínimo.</p>
-                    </div>
-                @else
-                    <div class="alert-list">
-                        @foreach ($lowMaterials as $material)
-                            <div class="alert-item">
-                                <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.7 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z"/></svg>
-                                <span>
-                                    <strong>{{ $material->name }}</strong>
-                                    <small>{{ number_format($material->stock_quantity, 2) }} {{ $material->unit }} disponibles · mínimo {{ number_format($material->minimum_stock, 2) }}</small>
-                                </span>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
-            </div>
-        </section>
-    </div>
+            @empty
+                <div class="empty-state">
+                    <strong>Aún no hay productos</strong>
+                    <p>Crea tu primer producto y configura sus variantes.</p>
+                </div>
+            @endforelse
+        </div>
+    </section>
 
     <div class="panel-grid" style="margin-top:18px">
         <section class="panel">
@@ -146,7 +114,7 @@
                     <article class="mobile-data-card">
                         <div class="mobile-data-card-head"><strong>{{ $sale->number }}</strong><span class="amount">{{ \App\Support\Money::format($sale->total_cents) }}</span></div>
                         <small>{{ $sale->sold_at->translatedFormat('d M · H:i') }}</small>
-                        <span class="badge neutral">{{ $sale->items->sum('quantity') }} unidades</span>
+                        <span class="badge neutral">{{ $sale->items->sum('quantity') }} {{ $sale->items->sum('quantity') === 1 ? 'unidad' : 'unidades' }}</span>
                     </article>
                 @empty
                     <div class="empty-state"><strong>Sin ventas todavía</strong><p>La actividad aparecerá aquí.</p></div>
@@ -169,7 +137,7 @@
                         <tr>
                             <td>
                                 <span class="table-primary">{{ $lot->code }}</span>
-                                <span class="table-secondary">{{ $lot->items->count() }} variantes</span>
+                                <span class="table-secondary">{{ $lot->items->count() }} {{ $lot->items->count() === 1 ? 'variante' : 'variantes' }}</span>
                             </td>
                             <td>{{ $lot->produced_at->translatedFormat('d M Y') }}</td>
                             <td class="text-right amount">{{ $lot->items->sum('quantity_available') }}</td>
@@ -183,8 +151,8 @@
             <div class="mobile-card-list mobile-only">
                 @forelse ($recentLots as $lot)
                     <article class="mobile-data-card">
-                        <div class="mobile-data-card-head"><strong>{{ $lot->code }}</strong><span class="amount">{{ $lot->items->sum('quantity_available') }} disponibles</span></div>
-                        <small>{{ $lot->produced_at->translatedFormat('d M Y') }} · {{ $lot->items->count() }} variantes</small>
+                        <div class="mobile-data-card-head"><strong>{{ $lot->code }}</strong><span class="amount">{{ $lot->items->sum('quantity_available') }} {{ $lot->items->sum('quantity_available') === 1 ? 'disponible' : 'disponibles' }}</span></div>
+                        <small>{{ $lot->produced_at->translatedFormat('d M Y') }} · {{ $lot->items->count() }} {{ $lot->items->count() === 1 ? 'variante' : 'variantes' }}</small>
                     </article>
                 @empty
                     <div class="empty-state"><strong>Sin lotes todavía</strong><p>La producción aparecerá aquí.</p></div>
