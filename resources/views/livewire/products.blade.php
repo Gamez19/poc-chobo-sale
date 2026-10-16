@@ -1,9 +1,9 @@
 <div>
     <header class="page-header">
         <div>
-            <p class="eyebrow">Catálogo & recetas</p>
+            <p class="eyebrow">Catálogo</p>
             <h1>Productos y precios</h1>
-            <p class="page-description">Cada categoría tiene su propio precio, receta y existencia, sin alterar el historial de ventas.</p>
+            <p class="page-description">Cada categoría tiene su propio precio y existencia, sin alterar el historial de ventas.</p>
         </div>
     </header>
 
@@ -102,7 +102,7 @@
                                             <h3>{{ $variant->name }}</h3>
                                         </div>
                                         <span class="badge {{ ($variant->available_stock ?? 0) > 0 ? 'success' : 'warning' }}">
-                                            {{ $variant->available_stock ?? 0 }} disponibles
+                                            {{ $variant->available_stock ?? 0 }} {{ ($variant->available_stock ?? 0) === 1 ? 'disponible' : 'disponibles' }}
                                         </span>
                                     </div>
 
@@ -124,7 +124,7 @@
                                     @else
                                         <div class="form-group">
                                             <label for="variant-name-{{ $variant->id }}">Nombre de la variante</label>
-                                        <div class="price-row">
+                                        <div class="price-row is-rename">
                                             <input id="variant-name-{{ $variant->id }}" class="input"
                                                    wire:model="variantNames.{{ $variant->id }}">
                                             <button class="btn btn-soft btn-sm" type="button" wire:click="renameVariant({{ $variant->id }})">Renombrar</button>

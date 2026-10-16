@@ -144,7 +144,7 @@
                     <article class="mobile-data-card">
                         <div class="mobile-data-card-head"><strong>{{ $sale->number }}</strong><span class="amount">{{ \App\Support\Money::format($sale->total_cents) }}</span></div>
                         <small>{{ $sale->sold_at->translatedFormat('d M · H:i') }}</small>
-                        <span class="badge neutral">{{ $sale->items->sum('quantity') }} unidades</span>
+                        <span class="badge neutral">{{ $sale->items->sum('quantity') }} {{ $sale->items->sum('quantity') === 1 ? 'unidad' : 'unidades' }}</span>
                     </article>
                 @empty
                     <div class="empty-state"><strong>Sin ventas todavía</strong><p>La actividad aparecerá aquí.</p></div>
@@ -167,7 +167,7 @@
                         <tr>
                             <td>
                                 <span class="table-primary">{{ $lot->code }}</span>
-                                <span class="table-secondary">{{ $lot->items->count() }} variantes</span>
+                                <span class="table-secondary">{{ $lot->items->count() }} {{ $lot->items->count() === 1 ? 'variante' : 'variantes' }}</span>
                             </td>
                             <td>{{ $lot->produced_at->translatedFormat('d M Y') }}</td>
                             <td class="text-right amount">{{ $lot->items->sum('quantity_available') }}</td>
@@ -181,8 +181,8 @@
             <div class="mobile-card-list mobile-only">
                 @forelse ($recentLots as $lot)
                     <article class="mobile-data-card">
-                        <div class="mobile-data-card-head"><strong>{{ $lot->code }}</strong><span class="amount">{{ $lot->items->sum('quantity_available') }} disponibles</span></div>
-                        <small>{{ $lot->produced_at->translatedFormat('d M Y') }} · {{ $lot->items->count() }} variantes</small>
+                        <div class="mobile-data-card-head"><strong>{{ $lot->code }}</strong><span class="amount">{{ $lot->items->sum('quantity_available') }} {{ $lot->items->sum('quantity_available') === 1 ? 'disponible' : 'disponibles' }}</span></div>
+                        <small>{{ $lot->produced_at->translatedFormat('d M Y') }} · {{ $lot->items->count() }} {{ $lot->items->count() === 1 ? 'variante' : 'variantes' }}</small>
                     </article>
                 @empty
                     <div class="empty-state"><strong>Sin lotes todavía</strong><p>La producción aparecerá aquí.</p></div>

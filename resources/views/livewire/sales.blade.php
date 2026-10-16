@@ -32,7 +32,7 @@
                     <div class="empty-state">
                         <strong>Todavía no hay existencias para vender</strong>
                         <p>
-                            Para vender necesitas configurar la receta de la variante en
+                            Para vender necesitas crear la variante en
                             <a href="{{ route('products') }}" wire:navigate>Productos</a>
                             y luego registrar un lote de producción en
                             <a href="{{ route('production-lots') }}" wire:navigate>Lotes de producción</a>.
@@ -56,7 +56,7 @@
                             <div class="sale-option-head">
                                 <span>
                                     <h3>{{ $variant->name }}</h3>
-                                    <span class="table-secondary">{{ $variant->product->name }} · {{ $available }} disponibles</span>
+                                    <span class="table-secondary">{{ $variant->product->name }} · {{ $available }} {{ $available === 1 ? 'disponible' : 'disponibles' }}</span>
                                 </span>
                                 <span class="sale-price">{{ \App\Support\Money::format($variant->price_cents) }}</span>
                             </div>
@@ -112,7 +112,7 @@
             </div>
             <div class="panel-body stock-list">
                 @forelse ($recentSales as $sale)
-                    <div class="stock-row">
+                    <div class="stock-row is-wrapping">
                         <div class="stock-name">
                             <span class="avatar">{{ $sale->items->sum('quantity') }}</span>
                             <span>

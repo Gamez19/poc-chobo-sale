@@ -36,7 +36,7 @@ class SalesLivewireTest extends TestCase
         $variant = $this->variant('Chocobanano', 'Maní');
 
         $html = Livewire::test(Sales::class)
-            ->assertSee('receta')
+            ->assertSee('crear la variante')->assertDontSee('receta')
             ->assertSee('lote')
             ->assertSeeHtml(route('products'))
             ->assertSeeHtml(route('production-lots'))
@@ -74,7 +74,7 @@ class SalesLivewireTest extends TestCase
 
         $component->set('search', 'mermelada')
             ->assertSee('No encontramos productos con ese nombre')
-            ->assertDontSee('Para vender necesitas configurar la receta');
+            ->assertDontSee('Para vender necesitas crear la variante');
     }
 
     public function test_total_uses_live_quantities_and_survives_a_search_that_hides_the_selection(): void

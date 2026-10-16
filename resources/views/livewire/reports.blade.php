@@ -60,9 +60,9 @@
                 <h2>Ventas por lote y categoría</h2>
                 <p>{{ $dateFrom }} al {{ $dateTo }}</p>
             </div>
-            <span class="badge neutral">{{ $rows->count() }} resultados</span>
+            <span class="badge neutral">{{ $rows->count() }} {{ $rows->count() === 1 ? 'resultado' : 'resultados' }}</span>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap desktop-only">
             <table class="data-table">
                 <thead>
                     <tr><th>Lote</th><th>Producto</th><th>Producción</th><th class="text-right">Unidades</th><th class="text-right">Ingresos</th></tr>
@@ -104,6 +104,35 @@
                     </tfoot>
                 @endif
             </table>
+        </div>
+        <div class="mobile-card-list mobile-only">
+            @forelse ($rows as $row)
+                <article class="mobile-data-card">
+                    <div class="mobile-data-card-head">
+                        <strong>{{ $row['variant_name'] }}</strong>
+                        <span class="amount">{{ \App\Support\Money::format($row['revenue_cents']) }}</span>
+                    </div>
+                    <small>{{ $row['variant']->product->name }} · {{ $row['lot']->code }} ({{ $row['lot']->deleted_at ? 'Eliminado' : ($row['lot']->status === 'open' ? 'Activo' : 'Agotado') }})</small>
+                    <dl class="mobile-data-grid cols-2">
+                        <div><dt>Producción</dt><dd>{{ $row['lot']->produced_at->translatedFormat('d M Y') }}</dd></div>
+                        <div><dt>Unidades</dt><dd>{{ number_format($row['units']) }}</dd></div>
+                    </dl>
+                </article>
+            @empty
+                <div class="empty-state">
+                    <strong>No hay ventas para estos filtros</strong>
+                    <p>Prueba con otro rango de fechas o selecciona todos los lotes.</p>
+                </div>
+            @endforelse
+            @if ($rows->isNotEmpty())
+                <article class="mobile-data-card">
+                    <div class="mobile-data-card-head">
+                        <strong>Total</strong>
+                        <span class="amount">{{ \App\Support\Money::format($totalRevenueCents) }}</span>
+                    </div>
+                    <small>{{ number_format($totalUnits) }} {{ $totalUnits === 1 ? 'unidad' : 'unidades' }}</small>
+                </article>
+            @endif
         </div>
     </section>
 </div>

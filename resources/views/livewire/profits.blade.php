@@ -62,7 +62,7 @@
                     <h2>Ventas por variante</h2>
                     <p>Unidades e ingresos del período</p>
                 </div>
-                <span class="badge neutral">{{ $salesRows->count() }} resultados</span>
+                <span class="badge neutral">{{ $salesRows->count() }} {{ $salesRows->count() === 1 ? 'resultado' : 'resultados' }}</span>
             </div>
             <div class="responsive-table desktop-only">
                 <table class="data-table">
@@ -98,7 +98,7 @@
                     <h2>Compras del período</h2>
                     <p>Gastos registrados en el rango</p>
                 </div>
-                <span class="badge neutral">{{ $purchases->count() }} resultados</span>
+                <span class="badge neutral">{{ $purchases->count() }} {{ $purchases->count() === 1 ? 'resultado' : 'resultados' }}</span>
             </div>
             <div class="responsive-table desktop-only">
                 <table class="data-table">
@@ -138,7 +138,7 @@
                     <h2>Ingreso potencial</h2>
                     <p>Stock disponible al precio de venta actual: {{ \App\Support\Money::format($potentialRevenueCents) }}</p>
                 </div>
-                <span class="badge neutral">{{ $potentialRows->count() }} resultados</span>
+                <span class="badge neutral">{{ $potentialRows->count() }} {{ $potentialRows->count() === 1 ? 'resultado' : 'resultados' }}</span>
             </div>
             <div class="responsive-table desktop-only">
                 <table class="data-table">

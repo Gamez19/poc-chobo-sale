@@ -67,7 +67,7 @@
                     <h2>Historial de compras</h2>
                     <p>Gastado este mes: {{ \App\Support\Money::format($monthSpentCents) }}</p>
                 </div>
-                <span class="badge neutral">{{ $purchases->total() }} compras</span>
+                <span class="badge neutral">{{ $purchases->total() }} {{ $purchases->total() === 1 ? 'compra' : 'compras' }}</span>
             </div>
             <ul class="material-list" role="list">
                 @forelse ($purchases as $purchase)
@@ -89,7 +89,9 @@
                     <li><div class="empty-state"><strong>Todavía no registras compras</strong><p>Usa el formulario para anotar lo que gastaste.</p></div></li>
                 @endforelse
             </ul>
-            <div class="panel-body pagination-wrap">{{ $purchases->links() }}</div>
+            @if ($purchases->hasPages())
+                <div class="panel-body pagination-wrap">{{ $purchases->links() }}</div>
+            @endif
         </section>
     </div>
 
@@ -97,7 +99,7 @@
         <div class="panel-header">
             <div>
                 <h2>Catálogo de insumos</h2>
-                <p>{{ $materials->total() }} insumos registrados</p>
+                <p>{{ $materials->total() }} {{ $materials->total() === 1 ? 'insumo registrado' : 'insumos registrados' }}</p>
             </div>
         </div>
         <div class="panel-body">
@@ -134,7 +136,9 @@
                 <li><div class="empty-state"><strong>No se encontraron insumos</strong><p>Agrega un insumo por su nombre.</p></div></li>
             @endforelse
         </ul>
-        <div class="panel-body pagination-wrap">{{ $materials->links() }}</div>
+        @if ($materials->hasPages())
+            <div class="panel-body pagination-wrap">{{ $materials->links() }}</div>
+        @endif
     </section>
 
     @if ($editMaterialId && $editingMaterial)
