@@ -184,6 +184,7 @@ h3 { margin-bottom: 4px; font-size: .94rem; }
 
 .split-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, .8fr); gap: 18px; }
 .split-grid.is-form-first { grid-template-columns: minmax(300px, .8fr) minmax(0, 1.45fr); }
+.split-grid + .panel { margin-top: 18px; }
 .panel { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: 0 6px 28px rgba(40,28,20,.035); }
 .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; border-bottom: 1px solid var(--line); }
 .panel-header p { margin: 3px 0 0; color: var(--muted); font-size: .76rem; }
