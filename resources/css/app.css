@@ -481,10 +481,8 @@ linear-gradient(145deg, var(--cacao), var(--cacao-dark)); }
 @media (max-width: 760px) {
     .dashboard-content { display: flex; flex-direction: column; gap: 18px; }
     .dashboard-content > .page-header { order: 1; margin-bottom: 4px; }
-    .dashboard-content > .split-grid { display: contents; }
-    .dashboard-stock-panel { order: 2; }
+    .dashboard-stock-panel { order: 2; margin-top: 0 !important; }
     .dashboard-content > .stats-grid { order: 3; }
-    .dashboard-attention-panel { order: 4; }
     .dashboard-content > .panel-grid { order: 5; margin-top: 0 !important; }
 
     .nav-icon svg { width: 19px; height: 19px; }

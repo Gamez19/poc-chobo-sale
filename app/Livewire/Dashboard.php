@@ -32,12 +32,6 @@ class Dashboard extends Component
             'monthPurchasesCents' => (int) Purchase::query()
                 ->whereBetween('purchased_at', [today()->startOfMonth(), today()->endOfMonth()])
                 ->sum('total_cents'),
-            'recentPurchases' => Purchase::query()
-                ->with(['rawMaterials' => fn ($query) => $query->orderBy('name')])
-                ->latest('purchased_at')
-                ->latest('id')
-                ->limit(5)
-                ->get(),
             'variants' => ProductVariant::query()
                 ->where('active', true)
                 ->with('product')

@@ -49,67 +49,37 @@
         </article>
     </section>
 
-    <div class="split-grid" style="margin-top:18px">
-        <section class="panel dashboard-stock-panel">
-            <div class="panel-header">
-                <div>
-                    <h2>Existencia por variante</h2>
-                    <p>Productos listos para vender</p>
-                </div>
-                <a href="{{ route('production-lots') }}" class="btn btn-secondary btn-sm" wire:navigate>Nuevo lote</a>
+    <section class="panel dashboard-stock-panel" style="margin-top:18px">
+        <div class="panel-header">
+            <div>
+                <h2>Existencia por variante</h2>
+                <p>Productos listos para vender</p>
             </div>
-            <div class="panel-body stock-list">
-                @forelse ($variants as $variant)
-                    <div class="stock-row">
-                        <div class="stock-name">
-                            <span class="avatar">{{ str($variant->name)->substr(0, 2)->upper() }}</span>
-                            <span>
-                                <strong>{{ $variant->name }}</strong>
-                                <small>{{ \App\Support\Money::format($variant->price_cents) }}</small>
-                            </span>
-                        </div>
-                        <span class="stock-count">
-                            {{ number_format($variant->available_stock ?? 0) }}
-                            <small>disponibles</small>
+            <a href="{{ route('production-lots') }}" class="btn btn-secondary btn-sm" wire:navigate>Nuevo lote</a>
+        </div>
+        <div class="panel-body stock-list">
+            @forelse ($variants as $variant)
+                <div class="stock-row">
+                    <div class="stock-name">
+                        <span class="avatar">{{ str($variant->name)->substr(0, 2)->upper() }}</span>
+                        <span>
+                            <strong>{{ $variant->name }}</strong>
+                            <small>{{ \App\Support\Money::format($variant->price_cents) }}</small>
                         </span>
                     </div>
-                @empty
-                    <div class="empty-state">
-                        <strong>Aún no hay productos</strong>
-                        <p>Crea tu primer producto y configura sus variantes.</p>
-                    </div>
-                @endforelse
-            </div>
-        </section>
-
-        <section class="panel dashboard-attention-panel">
-            <div class="panel-header">
-                <div>
-                    <h2>Últimas compras</h2>
-                    <p>Gastos recientes en insumos</p>
+                    <span class="stock-count">
+                        {{ number_format($variant->available_stock ?? 0) }}
+                        <small>disponibles</small>
+                    </span>
                 </div>
-                <a href="{{ route('raw-materials') }}" class="btn btn-secondary btn-sm" wire:navigate>Ver compras</a>
-            </div>
-            <div class="panel-body stock-list">
-                @forelse ($recentPurchases as $purchase)
-                    <div class="stock-row" wire:key="purchase-{{ $purchase->id }}">
-                        <div class="stock-name">
-                            <span>
-                                <strong>{{ $purchase->rawMaterials->pluck('name')->join(', ') ?: 'Sin insumos' }}</strong>
-                                <small>{{ $purchase->purchased_at->translatedFormat('d M Y') }}</small>
-                            </span>
-                        </div>
-                        <span class="stock-count">{{ \App\Support\Money::format($purchase->total_cents) }}</span>
-                    </div>
-                @empty
-                    <div class="empty-state">
-                        <strong>Sin compras todavía</strong>
-                        <p>Registra tus compras en Materias primas.</p>
-                    </div>
-                @endforelse
-            </div>
-        </section>
-    </div>
+            @empty
+                <div class="empty-state">
+                    <strong>Aún no hay productos</strong>
+                    <p>Crea tu primer producto y configura sus variantes.</p>
+                </div>
+            @endforelse
+        </div>
+    </section>
 
     <div class="panel-grid" style="margin-top:18px">
         <section class="panel">

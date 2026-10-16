@@ -71,14 +71,17 @@ class DashboardReportsTest extends TestCase
             ->assertDontSee('Alertas de insumos');
     }
 
-    public function test_dashboard_lists_latest_purchases_with_their_materials(): void
+    public function test_dashboard_does_not_list_latest_purchases(): void
     {
         $purchase = Purchase::create(['purchased_at' => today(), 'total_cents' => 15000]);
         $purchase->rawMaterials()->attach(RawMaterial::create(['name' => 'Bananos', 'unit' => 'unidad'])->id);
 
         Livewire::test(Dashboard::class)
-            ->assertSee('Últimas compras')
-            ->assertSee('Bananos');
+            ->assertSee('Compras del mes')
+            ->assertSee('C$ 150.00')
+            ->assertDontSee('Últimas compras')
+            ->assertDontSee('Bananos')
+            ->assertViewMissing('recentPurchases');
     }
 
     public function test_report_with_empty_dates_shows_a_message_and_no_rows(): void
