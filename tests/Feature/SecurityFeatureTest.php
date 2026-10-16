@@ -19,7 +19,7 @@ class SecurityFeatureTest extends TestCase
 
     public function test_guests_are_redirected_from_application_routes_to_login(): void
     {
-        foreach (['/materias-primas', '/productos', '/lotes', '/ventas', '/reportes', '/ganancias', '/configuracion'] as $path) {
+        foreach (['/materias-primas', '/productos', '/lotes', '/ventas', '/reportes', '/reportes/compras', '/ganancias', '/configuracion'] as $path) {
             $this->get($path)->assertRedirect('/login');
         }
     }
