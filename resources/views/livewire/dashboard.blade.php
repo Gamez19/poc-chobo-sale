@@ -41,11 +41,11 @@
 
         <article class="stat-card">
             <div class="stat-label">
-                Alertas de insumos
-                <span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.7 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z"/></svg></span>
+                Compras del mes
+                <span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M6 6h15l-1.5 9h-12L6 6Zm0 0L5 3H2"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg></span>
             </div>
-            <strong class="stat-value">{{ $lowMaterials->count() }}</strong>
-            <span class="stat-meta">{{ $lowMaterials->isEmpty() ? 'Inventario saludable' : 'requieren atención' }}</span>
+            <strong class="stat-value">{{ \App\Support\Money::format($monthPurchasesCents) }}</strong>
+            <span class="stat-meta">gastado en insumos</span>
         </article>
     </section>
 
@@ -85,30 +85,28 @@
         <section class="panel dashboard-attention-panel">
             <div class="panel-header">
                 <div>
-                    <h2>Atención requerida</h2>
-                    <p>Materias primas en nivel mínimo</p>
+                    <h2>Últimas compras</h2>
+                    <p>Gastos recientes en insumos</p>
                 </div>
+                <a href="{{ route('raw-materials') }}" class="btn btn-secondary btn-sm" wire:navigate>Ver compras</a>
             </div>
-            <div class="panel-body">
-                @if ($lowMaterials->isEmpty())
+            <div class="panel-body stock-list">
+                @forelse ($recentPurchases as $purchase)
+                    <div class="stock-row" wire:key="purchase-{{ $purchase->id }}">
+                        <div class="stock-name">
+                            <span>
+                                <strong>{{ $purchase->rawMaterials->pluck('name')->join(', ') ?: 'Sin insumos' }}</strong>
+                                <small>{{ $purchase->purchased_at->translatedFormat('d M Y') }}</small>
+                            </span>
+                        </div>
+                        <span class="stock-count">{{ \App\Support\Money::format($purchase->total_cents) }}</span>
+                    </div>
+                @empty
                     <div class="empty-state">
-                        <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
-                        <strong>Todo abastecido</strong>
-                        <p>No hay insumos por debajo del mínimo.</p>
+                        <strong>Sin compras todavía</strong>
+                        <p>Registra tus compras en Materias primas.</p>
                     </div>
-                @else
-                    <div class="alert-list">
-                        @foreach ($lowMaterials as $material)
-                            <div class="alert-item">
-                                <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.7 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z"/></svg>
-                                <span>
-                                    <strong>{{ $material->name }}</strong>
-                                    <small>{{ number_format($material->stock_quantity, 2) }} {{ $material->unit }} disponibles · mínimo {{ number_format($material->minimum_stock, 2) }}</small>
-                                </span>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
+                @endforelse
             </div>
         </section>
     </div>

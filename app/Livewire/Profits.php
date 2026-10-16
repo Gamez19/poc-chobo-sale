@@ -2,9 +2,10 @@
 
 namespace App\Livewire;
 
-use App\Models\ProductionLot;
 use App\Models\ProductionLotItem;
-use App\Models\SaleItemLot;
+use App\Models\Purchase;
+use App\Models\Sale;
+use App\Models\SaleItem;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
@@ -19,8 +20,6 @@ class Profits extends Component
 
     public string $dateTo;
 
-    public string $lotId = '';
-
     public function mount(): void
     {
         $this->dateFrom = now()->startOfMonth()->format('Y-m-d');
@@ -29,56 +28,67 @@ class Profits extends Component
 
     public function render()
     {
-        $lots = ProductionLot::withTrashed()
-            ->latest('produced_at')
-            ->get();
+        $potentialRows = $this->potentialRows();
         $range = $this->resolveRange();
 
         if ($range === null) {
-            return view('livewire.profits', $this->emptyReport($lots));
+            return view('livewire.profits', $this->emptyReport($potentialRows));
         }
 
         [$from, $to] = $range;
-        $realizedAllocations = SaleItemLot::query()
-            ->with([
-                'saleItem.sale',
-                'saleItem.productVariant.product',
-                'productionLotItem.productionLot',
-                'productionLotItem.productVariant.product',
-            ])
-            ->whereHas('saleItem.sale', fn ($query) => $query
-                ->whereBetween('sold_at', [$from, $to]))
-            ->when($this->lotId, fn ($query) => $query
-                ->whereIn('production_lot_item_id', $this->lotItemIdsForSelectedLot()))
+        $salesCents = (int) Sale::query()
+            ->whereBetween('sold_at', [$from, $to])
+            ->sum('total_cents');
+        $purchases = Purchase::query()
+            ->with(['rawMaterials' => fn ($query) => $query->orderBy('name')])
+            ->whereBetween('purchased_at', [$from, $to])
+            ->orderByDesc('purchased_at')
+            ->orderByDesc('id')
             ->get();
+        $purchasesCents = (int) $purchases->sum('total_cents');
+        $profitCents = $salesCents - $purchasesCents;
 
-        $realizedRows = $realizedAllocations
-            ->groupBy(fn (SaleItemLot $allocation): string => $allocation->productionLotItem->production_lot_id
-                .'-'.$allocation->saleItem->product_variant_id)
-            ->map(function (Collection $group): array {
-                $first = $group->first();
-                $revenueCents = $group->sum(
-                    fn (SaleItemLot $allocation): int => $allocation->quantity * $allocation->saleItem->unit_price_cents,
-                );
-                $costCents = $group->sum(
-                    fn (SaleItemLot $allocation): int => $allocation->quantity * $allocation->productionLotItem->unit_cost_cents,
-                );
+        return view('livewire.profits', [
+            'salesRows' => $this->salesRows($from, $to),
+            'purchases' => $purchases,
+            'potentialRows' => $potentialRows,
+            'salesCents' => $salesCents,
+            'purchasesCents' => $purchasesCents,
+            'profitCents' => $profitCents,
+            'marginPercent' => $this->marginPercent($profitCents, $salesCents),
+            'potentialRevenueCents' => (int) $potentialRows->sum('revenue_cents'),
+        ]);
+    }
 
-                return [
-                    'lot' => $first->productionLotItem->productionLot,
-                    'variant' => $first->saleItem->productVariant,
-                    'variant_name' => $this->historicalVariantName($first),
-                    'units' => $group->sum('quantity'),
-                    'revenue_cents' => $revenueCents,
-                    'cost_cents' => $costCents,
-                    'profit_cents' => $revenueCents - $costCents,
-                ];
-            })
-            ->sortByDesc('profit_cents')
-            ->values();
+    /**
+     * Units and revenue sold in the range, grouped by the variant name recorded at sale time.
+     *
+     * @return Collection<int, array{variant_name: string, units: int, revenue_cents: int}>
+     */
+    private function salesRows(Carbon $from, Carbon $to): Collection
+    {
+        return SaleItem::query()
+            ->whereHas('sale', fn ($query) => $query->whereBetween('sold_at', [$from, $to]))
+            ->selectRaw('variant_name, sum(quantity) as units, sum(subtotal_cents) as revenue_cents')
+            ->groupBy('variant_name')
+            ->orderByDesc('revenue_cents')
+            ->get()
+            ->map(fn (SaleItem $item): array => [
+                'variant_name' => (string) $item->variant_name,
+                'units' => (int) $item->units,
+                'revenue_cents' => (int) $item->revenue_cents,
+            ]);
+    }
 
-        $projectedItems = ProductionLotItem::query()
-            ->with(['productionLot', 'productVariant.product'])
+    /**
+     * Available finished stock valued at the current variant price (revenue only).
+     *
+     * @return Collection<int, array{variant_name: string, units: int, revenue_cents: int}>
+     */
+    private function potentialRows(): Collection
+    {
+        return ProductionLotItem::query()
+            ->with('productVariant')
             ->where('quantity_available', '>', 0)
             ->whereHas('productVariant', fn ($query) => $query
                 ->whereNull('deleted_at')
@@ -88,47 +98,25 @@ class Profits extends Component
                 ->where('status', 'open')
                 ->where(fn ($lotQuery) => $lotQuery
                     ->whereNull('expires_at')
-                    ->orWhereDate('expires_at', '>=', today()))
-                ->whereBetween('produced_at', [$from, $to]))
-            ->when($this->lotId, fn ($query) => $query->where('production_lot_id', $this->lotId))
-            ->get();
-        $projectedRows = $projectedItems
-            ->map(function (ProductionLotItem $item): array {
-                $revenueCents = $item->quantity_available * $item->productVariant->price_cents;
-                $costCents = $item->quantity_available * $item->unit_cost_cents;
+                    ->orWhereDate('expires_at', '>=', today())))
+            ->get()
+            ->groupBy('product_variant_id')
+            ->map(function (Collection $items): array {
+                $variant = $items->first()->productVariant;
+                $units = (int) $items->sum('quantity_available');
 
                 return [
-                    'lot' => $item->productionLot,
-                    'variant' => $item->productVariant,
-                    'variant_name' => $item->productVariant->name,
-                    'units' => $item->quantity_available,
-                    'revenue_cents' => $revenueCents,
-                    'cost_cents' => $costCents,
-                    'profit_cents' => $revenueCents - $costCents,
+                    'variant_name' => $variant->name,
+                    'units' => $units,
+                    'revenue_cents' => $units * $variant->price_cents,
                 ];
             })
-            ->sortByDesc('profit_cents')
+            ->sortByDesc('revenue_cents')
             ->values();
-
-        $realizedRevenueCents = (int) $realizedRows->sum('revenue_cents');
-        $realizedProfitCents = (int) $realizedRows->sum('profit_cents');
-
-        return view('livewire.profits', [
-            'lots' => $lots,
-            'realizedRows' => $realizedRows,
-            'projectedRows' => $projectedRows,
-            'realizedRevenueCents' => $realizedRevenueCents,
-            'realizedCostCents' => $realizedRows->sum('cost_cents'),
-            'realizedProfitCents' => $realizedProfitCents,
-            'realizedMarginPercent' => $this->marginPercent($realizedProfitCents, $realizedRevenueCents),
-            'projectedRevenueCents' => $projectedRows->sum('revenue_cents'),
-            'projectedCostCents' => $projectedRows->sum('cost_cents'),
-            'projectedProfitCents' => $projectedRows->sum('profit_cents'),
-        ]);
     }
 
     /**
-     * Realized profit as a percentage of realized revenue, zero-safe.
+     * Profit as a percentage of sales revenue, zero-safe.
      */
     private function marginPercent(int $profitCents, int $revenueCents): string
     {
@@ -142,28 +130,18 @@ class Profits extends Component
     /**
      * @return array<string, Collection|int|string>
      */
-    private function emptyReport(Collection $lots): array
+    private function emptyReport(Collection $potentialRows): array
     {
         return [
-            'lots' => $lots,
-            'realizedRows' => collect(),
-            'projectedRows' => collect(),
-            'realizedRevenueCents' => 0,
-            'realizedCostCents' => 0,
-            'realizedProfitCents' => 0,
-            'realizedMarginPercent' => $this->marginPercent(0, 0),
-            'projectedRevenueCents' => 0,
-            'projectedCostCents' => 0,
-            'projectedProfitCents' => 0,
+            'salesRows' => collect(),
+            'purchases' => collect(),
+            'potentialRows' => $potentialRows,
+            'salesCents' => 0,
+            'purchasesCents' => 0,
+            'profitCents' => 0,
+            'marginPercent' => $this->marginPercent(0, 0),
+            'potentialRevenueCents' => (int) $potentialRows->sum('revenue_cents'),
         ];
-    }
-
-    private function lotItemIdsForSelectedLot(): array
-    {
-        return ProductionLotItem::query()
-            ->where('production_lot_id', $this->lotId)
-            ->pluck('id')
-            ->all();
     }
 
     /**
@@ -210,11 +188,5 @@ class Profits extends Component
         }
 
         return $date;
-    }
-
-    private function historicalVariantName(SaleItemLot $allocation): string
-    {
-        return $allocation->saleItem->variant_name
-            ?: (string) $allocation->saleItem->productVariant?->name;
     }
 }

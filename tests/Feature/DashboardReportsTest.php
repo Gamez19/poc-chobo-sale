@@ -7,6 +7,7 @@ use App\Livewire\Reports;
 use App\Models\Product;
 use App\Models\ProductionLot;
 use App\Models\ProductVariant;
+use App\Models\Purchase;
 use App\Models\RawMaterial;
 use App\Services\SalesService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -55,29 +56,29 @@ class DashboardReportsTest extends TestCase
         );
     }
 
-    public function test_low_material_alerts_ignore_inactive_materials(): void
+    public function test_dashboard_shows_current_month_purchases_and_excludes_previous_months(): void
     {
-        $active = $this->lowMaterial('Leche');
-        $this->lowMaterial('Cacao viejo', active: false);
+        Purchase::create(['purchased_at' => today(), 'total_cents' => 15000]);
+        Purchase::create(['purchased_at' => today()->startOfMonth(), 'total_cents' => 18000]);
+        Purchase::create(['purchased_at' => today()->startOfMonth()->subDay(), 'total_cents' => 99000]);
 
         $component = Livewire::test(Dashboard::class);
 
-        $this->assertSame(
-            [$active->id],
-            $component->viewData('lowMaterials')->pluck('id')->all(),
-        );
-
-        $component->assertSee('Leche')->assertDontSee('Cacao viejo');
+        $this->assertSame(33000, $component->viewData('monthPurchasesCents'));
+        $component
+            ->assertSee('Compras del mes')
+            ->assertSee('C$ 330.00')
+            ->assertDontSee('Alertas de insumos');
     }
 
-    public function test_low_material_alerts_show_quantities_with_two_decimals(): void
+    public function test_dashboard_lists_latest_purchases_with_their_materials(): void
     {
-        $this->lowMaterial('Leche');
-        RawMaterial::query()->where('name', 'Leche')->update(['stock_quantity' => '1.250']);
+        $purchase = Purchase::create(['purchased_at' => today(), 'total_cents' => 15000]);
+        $purchase->rawMaterials()->attach(RawMaterial::create(['name' => 'Bananos', 'unit' => 'unidad'])->id);
 
         Livewire::test(Dashboard::class)
-            ->assertSee('1.25 kg disponibles')
-            ->assertSee('mínimo 5.00');
+            ->assertSee('Últimas compras')
+            ->assertSee('Bananos');
     }
 
     public function test_report_with_empty_dates_shows_a_message_and_no_rows(): void
@@ -186,17 +187,5 @@ class DashboardReportsTest extends TestCase
         ]);
 
         return $variant;
-    }
-
-    private function lowMaterial(string $name, bool $active = true): RawMaterial
-    {
-        return RawMaterial::create([
-            'name' => $name,
-            'unit' => 'kg',
-            'stock_quantity' => 1,
-            'unit_cost_cents' => 500,
-            'minimum_stock' => 5,
-            'active' => $active,
-        ]);
     }
 }
