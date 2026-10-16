@@ -308,10 +308,6 @@ label, .field-label { color: var(--label); font-size: .72rem; font-weight: 800; 
 .variant-top small { display: block; margin-top: 4px; color: var(--muted); font-size: .67rem; }
 .price-row { display: flex; gap: 8px; }
 .price-row .input-with-prefix { flex: 1; }
-.recipe { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 14px; }
-.recipe summary { cursor: pointer; color: var(--cacao); font-size: .72rem; font-weight: 800; list-style: none; }
-.recipe summary::-webkit-details-marker { display: none; }
-.recipe-fields { display: grid; gap: 10px; margin-top: 14px; }
 .mini-field { display: grid; grid-template-columns: minmax(0,1fr) 90px; gap: 8px; align-items: center; }
 .mini-field label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mini-field .input { min-height: 36px; }

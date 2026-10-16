@@ -146,38 +146,6 @@
                                             </div>
                                             @error('prices.'.$variant->id) <span class="field-error">{{ $message }}</span> @enderror
                                         </div>
-
-                                        @php
-                                            $activeRecipeItems = $variant->recipeItems->whereNull('deleted_at');
-                                            $variantMaterials = $materials->filter(fn ($material) => (! $material->deleted_at && $material->active)
-                                                || $activeRecipeItems->contains('raw_material_id', $material->id));
-                                        @endphp
-                                        <details class="recipe">
-                                            <summary>Configurar receta · {{ $activeRecipeItems->count() }} insumos</summary>
-                                        <div class="recipe-fields">
-                                            @foreach ($variantMaterials as $material)
-                                                <div class="mini-field">
-                                                    <label for="recipe-{{ $variant->id }}-{{ $material->id }}">
-                                                        {{ $material->name }}
-                                                        <span class="field-hint">({{ $material->unit }})</span>
-                                                        @unless ($material->active && ! $material->deleted_at)
-                                                            <span class="badge neutral"
-                                                                  data-testid="recipe-material-inactive-{{ $variant->id }}-{{ $material->id }}">
-                                                                Inactiva · pon 0 y guarda para quitarla
-                                                            </span>
-                                                        @endunless
-                                                    </label>
-                                                <input id="recipe-{{ $variant->id }}-{{ $material->id }}"
-                                                       type="number" min="0" step="0.001" class="input"
-                                                       wire:model="recipeQuantities.{{ $variant->id }}.{{ $material->id }}"
-                                                       placeholder="0">
-                                                    </div>
-                                                @endforeach
-                                                <button class="btn btn-secondary btn-sm w-full" type="button" wire:click="saveRecipe({{ $variant->id }})">
-                                                    Guardar receta
-                                                </button>
-                                            </div>
-                                        </details>
                                     @endif
                                 </section>
                         @endforeach

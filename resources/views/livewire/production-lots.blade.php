@@ -3,7 +3,7 @@
         <div>
             <p class="eyebrow">Producción</p>
             <h1>Lotes</h1>
-            <p class="page-description">Agrega productos terminados por lote y descuenta automáticamente los insumos de cada receta.</p>
+            <p class="page-description">Agrega productos terminados por lote.</p>
         </div>
     </header>
 

@@ -6,9 +6,7 @@ use App\Livewire\Products;
 use App\Livewire\Reports;
 use App\Models\Product;
 use App\Models\ProductionLot;
-use App\Models\RawMaterial;
 use App\Models\User;
-use App\Services\ProductionService;
 use App\Services\SalesService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -33,41 +31,6 @@ class InventoryWorkflowTest extends TestCase
         putenv('SEED_USER_PASSWORD');
 
         parent::tearDown();
-    }
-
-    public function test_production_consumes_recipe_materials_and_creates_stock(): void
-    {
-        $material = RawMaterial::create([
-            'name' => 'Banano',
-            'unit' => 'unidad',
-            'stock_quantity' => 10,
-            'unit_cost_cents' => 300,
-            'minimum_stock' => 2,
-        ]);
-        $variant = Product::create(['name' => 'Chocobanano', 'slug' => 'chocobanano'])
-            ->variants()
-            ->create(['name' => 'Simple', 'sku' => 'CHO-SIMPLE', 'price_cents' => 1500]);
-        $variant->recipeItems()->create([
-            'raw_material_id' => $material->id,
-            'quantity_required' => 1,
-        ]);
-
-        $lot = app(ProductionService::class)->createLot([
-            'code' => 'LOTE-TEST-001',
-            'produced_at' => today(),
-            'expires_at' => today()->addWeek(),
-            'notes' => null,
-        ], [$variant->id => 3]);
-
-        $this->assertSame(3, $lot->items->first()->quantity_available);
-        $this->assertSame(300, $lot->items->first()->unit_cost_cents);
-        $this->assertEquals(7, RawMaterial::find($material->id)->stock_quantity);
-        $this->assertDatabaseHas('raw_material_movements', [
-            'raw_material_id' => $material->id,
-            'type' => 'production',
-            'quantity' => -3,
-            'reference_id' => $lot->id,
-        ]);
     }
 
     public function test_sales_allocate_oldest_lots_and_preserve_the_price(): void

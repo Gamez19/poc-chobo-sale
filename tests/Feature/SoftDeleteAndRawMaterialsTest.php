@@ -17,14 +17,9 @@ class SoftDeleteAndRawMaterialsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_variant_deletion_is_soft_and_restore_recovers_its_recipe(): void
+    public function test_variant_deletion_is_soft_and_restore_recovers_it(): void
     {
-        $material = $this->makeMaterial('Cacao');
         $variant = $this->makeVariant();
-        $variant->recipeItems()->create([
-            'raw_material_id' => $material->id,
-            'quantity_required' => 2,
-        ]);
 
         Livewire::test(Products::class)
             ->call('removeVariant', $variant->id)
@@ -32,10 +27,6 @@ class SoftDeleteAndRawMaterialsTest extends TestCase
             ->assertSet('statusMessage', 'Variante eliminada y conservada en el historial.');
 
         $this->assertSoftDeleted('product_variants', ['id' => $variant->id]);
-        $this->assertSoftDeleted('recipe_items', [
-            'product_variant_id' => $variant->id,
-            'raw_material_id' => $material->id,
-        ]);
 
         Livewire::test(Products::class)
             ->call('restoreVariant', $variant->id)
@@ -44,11 +35,6 @@ class SoftDeleteAndRawMaterialsTest extends TestCase
         $this->assertDatabaseHas('product_variants', [
             'id' => $variant->id,
             'active' => true,
-            'deleted_at' => null,
-        ]);
-        $this->assertDatabaseHas('recipe_items', [
-            'product_variant_id' => $variant->id,
-            'raw_material_id' => $material->id,
             'deleted_at' => null,
         ]);
     }
@@ -154,21 +140,6 @@ class SoftDeleteAndRawMaterialsTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertSame('Leche', $material->refresh()->name);
-    }
-
-    public function test_soft_deleted_material_remains_visible_when_used_by_a_recipe(): void
-    {
-        $material = $this->makeMaterial('Colorante');
-        $variant = $this->makeVariant();
-        $variant->recipeItems()->create([
-            'raw_material_id' => $material->id,
-            'quantity_required' => 1,
-        ]);
-        $material->delete();
-
-        Livewire::test(Products::class)
-            ->assertSee('Colorante')
-            ->assertSee('Inactiva');
     }
 
     private function makeProduct(): Product

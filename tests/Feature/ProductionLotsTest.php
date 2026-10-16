@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Livewire\ProductionLots;
 use App\Models\Product;
 use App\Models\ProductionLot;
+use App\Models\ProductionLotItem;
 use App\Models\ProductVariant;
 use App\Models\RawMaterial;
+use App\Models\RawMaterialMovement;
 use App\Services\ProductionService;
 use App\Services\SalesService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,9 +19,82 @@ class ProductionLotsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_editing_a_lot_updates_metadata_quantities_costs_and_material_stock_without_changing_sales_allocations(): void
+    public function test_a_lot_is_created_for_a_variant_without_recipe_or_raw_materials(): void
+    {
+        $variant = Product::create(['name' => 'Chocobanano', 'slug' => 'chocobanano'])
+            ->variants()
+            ->create(['name' => 'Simple', 'sku' => 'CHO-SIMPLE', 'price_cents' => 1500]);
+
+        Livewire::test(ProductionLots::class)
+            ->set('code', 'LOTE-SIN-RECETA')
+            ->set('producedAt', today()->format('Y-m-d'))
+            ->set("variantQuantities.{$variant->id}", 5)
+            ->call('createLot')
+            ->assertHasNoErrors();
+
+        $lotItem = ProductionLot::query()->where('code', 'LOTE-SIN-RECETA')->firstOrFail()->items()->sole();
+
+        $this->assertSame(5, $lotItem->quantity_produced);
+        $this->assertSame(5, $lotItem->quantity_available);
+        $this->assertSame(0, $lotItem->unit_cost_cents);
+        $this->assertSame(0, RawMaterialMovement::query()->count());
+    }
+
+    public function test_a_variant_with_a_recipe_can_be_produced_when_material_stock_is_zero(): void
+    {
+        $material = RawMaterial::create([
+            'name' => 'Chocolate',
+            'unit' => 'bolsa',
+            'stock_quantity' => 0,
+            'unit_cost_cents' => 6000,
+            'minimum_stock' => 1,
+        ]);
+        $variant = Product::create(['name' => 'Chocobanano', 'slug' => 'chocobanano'])
+            ->variants()
+            ->create(['name' => 'Simple', 'sku' => 'CHO-SIMPLE', 'price_cents' => 1500]);
+        $variant->recipeItems()->create([
+            'raw_material_id' => $material->id,
+            'quantity_required' => 2,
+        ]);
+
+        Livewire::test(ProductionLots::class)
+            ->set('producedAt', today()->format('Y-m-d'))
+            ->set("variantQuantities.{$variant->id}", 10)
+            ->call('createLot')
+            ->assertHasNoErrors();
+
+        $lotItem = ProductionLotItem::query()->sole();
+
+        $this->assertSame(10, $lotItem->quantity_available);
+        $this->assertSame(0, $lotItem->unit_cost_cents);
+        $this->assertSame('0.000', $material->refresh()->stock_quantity);
+        $this->assertSame(0, RawMaterialMovement::query()->count());
+    }
+
+    public function test_editing_lot_quantities_leaves_material_stock_movements_and_unit_cost_untouched(): void
     {
         [$lot, $variant, $material] = $this->makeLot();
+        $lot->items()->sole()->update(['unit_cost_cents' => 600]);
+        $stockBefore = $material->refresh()->stock_quantity;
+
+        Livewire::test(ProductionLots::class)
+            ->call('openEdit', $lot->id)
+            ->set("editVariantQuantities.{$variant->id}", 9)
+            ->call('updateLot')
+            ->assertHasNoErrors();
+
+        $lotItem = $lot->items()->sole();
+
+        $this->assertSame(9, $lotItem->quantity_produced);
+        $this->assertSame(9, $lotItem->quantity_available);
+        $this->assertSame(600, $lotItem->unit_cost_cents);
+        $this->assertSame($stockBefore, $material->refresh()->stock_quantity);
+        $this->assertSame(0, RawMaterialMovement::query()->count());
+    }
+
+    public function test_editing_a_lot_updates_metadata_and_quantities_without_changing_sales_allocations(): void
+    {
+        [$lot, $variant] = $this->makeLot();
         $sale = app(SalesService::class)->record([$variant->id => 1], now(), null);
 
         Livewire::test(ProductionLots::class)
@@ -35,27 +110,18 @@ class ProductionLotsTest extends TestCase
 
         $lot->refresh();
         $lotItem = $lot->items()->sole();
-        $material->refresh();
 
         $this->assertSame('LOTE-AJUSTADO', $lot->code);
         $this->assertSame('Producción revisada', $lot->notes);
         $this->assertSame('open', $lot->status);
         $this->assertSame(6, $lotItem->quantity_produced);
         $this->assertSame(5, $lotItem->quantity_available);
-        $this->assertSame(600, $lotItem->unit_cost_cents);
-        $this->assertSame('8.000', $material->stock_quantity);
         $this->assertSame(1, $sale->items()->sole()->lotAllocations()->count());
-        $this->assertDatabaseHas('raw_material_movements', [
-            'raw_material_id' => $material->id,
-            'type' => 'production_adjustment',
-            'quantity' => -4,
-            'reference_id' => $lot->id,
-        ]);
     }
 
-    public function test_editing_a_lot_to_the_sold_quantity_returns_materials_and_depletes_it(): void
+    public function test_editing_a_lot_to_the_sold_quantity_depletes_it(): void
     {
-        [$lot, $variant, $material] = $this->makeLot();
+        [$lot, $variant] = $this->makeLot();
         app(SalesService::class)->record([$variant->id => 1], now(), null);
 
         Livewire::test(ProductionLots::class)
@@ -70,18 +136,11 @@ class ProductionLotsTest extends TestCase
         $this->assertSame('depleted', $lot->status);
         $this->assertSame(1, $lotItem->quantity_produced);
         $this->assertSame(0, $lotItem->quantity_available);
-        $this->assertSame('18.000', $material->refresh()->stock_quantity);
-        $this->assertDatabaseHas('raw_material_movements', [
-            'raw_material_id' => $material->id,
-            'type' => 'production_adjustment',
-            'quantity' => 6,
-            'reference_id' => $lot->id,
-        ]);
     }
 
     public function test_editing_a_lot_rejects_a_quantity_below_its_sold_allocation(): void
     {
-        [$lot, $variant, $material] = $this->makeLot();
+        [$lot, $variant] = $this->makeLot();
         app(SalesService::class)->record([$variant->id => 3], now(), null);
 
         Livewire::test(ProductionLots::class)
@@ -92,7 +151,6 @@ class ProductionLotsTest extends TestCase
 
         $this->assertSame(4, $lot->items()->sole()->quantity_produced);
         $this->assertSame(1, $lot->items()->sole()->quantity_available);
-        $this->assertSame('12.000', $material->refresh()->stock_quantity);
     }
 
     public function test_editing_a_lot_rejects_a_future_production_date(): void
@@ -121,10 +179,6 @@ class ProductionLotsTest extends TestCase
             'name' => 'Chispitas',
             'sku' => 'CHO-CHISPITAS',
             'price_cents' => 2200,
-        ]);
-        $otherVariant->recipeItems()->create([
-            'raw_material_id' => $lot->items()->sole()->productVariant->recipeItems()->sole()->raw_material_id,
-            'quantity_required' => 1,
         ]);
 
         Livewire::test(ProductionLots::class)
