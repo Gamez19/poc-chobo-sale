@@ -39,18 +39,18 @@
         </div>
     </section>
 
-    <section class="report-summary" aria-label="Resumen del reporte">
+    <section class="report-summary is-inline" aria-label="Resumen del reporte">
         <article class="mini-stat">
             <small>Gastado en el período</small>
             <strong>{{ \App\Support\Money::format($totalSpentCents) }}</strong>
         </article>
         <article class="mini-stat">
-            <small>Compras registradas</small>
-            <strong>{{ number_format($purchasesCount) }}</strong>
-        </article>
-        <article class="mini-stat">
             <small>Promedio por compra</small>
             <strong>{{ \App\Support\Money::format($averageCents) }}</strong>
+        </article>
+        <article class="mini-stat">
+            <small>Compras registradas</small>
+            <strong>{{ number_format($purchasesCount) }}</strong>
         </article>
     </section>
 

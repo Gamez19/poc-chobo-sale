@@ -51,6 +51,8 @@ class PurchaseReportsTest extends TestCase
             ->assertViewHas('purchasesCount', 2)
             ->assertViewHas('averageCents', 16500)
             ->assertSee('C$ 330.00')
+            ->assertSeeInOrder(['Gastado en el', 'Promedio por compra', 'Compras registradas'])
+            ->assertSeeHtml('class="report-summary is-inline"')
             ->assertSee('5 docenas de bananos')
             ->assertSee('3 bolsas de chocolate')
             ->assertDontSee('Fuera de rango');
