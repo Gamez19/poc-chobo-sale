@@ -22,6 +22,8 @@ class RawMaterials extends Component
 
     public string $name = '';
 
+    public bool $isCreatingMaterial = false;
+
     public ?int $editMaterialId = null;
 
     public string $editName = '';
@@ -38,6 +40,20 @@ class RawMaterials extends Component
     public function mount(): void
     {
         $this->purchasedAt = today()->format('Y-m-d');
+    }
+
+    public function openCreate(): void
+    {
+        $this->closeEdit();
+        $this->reset('name');
+        $this->resetValidation();
+        $this->isCreatingMaterial = true;
+    }
+
+    public function closeCreate(): void
+    {
+        $this->reset('name', 'isCreatingMaterial');
+        $this->resetValidation();
     }
 
     public function createMaterial(): void
@@ -61,13 +77,14 @@ class RawMaterials extends Component
             'unit' => 'unidad',
         ]);
 
-        $this->reset('name');
+        $this->closeCreate();
         session()->flash('success', 'Insumo agregado correctamente.');
     }
 
     public function openEdit(int $materialId): void
     {
         $material = RawMaterial::findOrFail($materialId);
+        $this->reset('name', 'isCreatingMaterial');
         $this->editMaterialId = $material->id;
         $this->editName = $material->name;
         $this->resetValidation();

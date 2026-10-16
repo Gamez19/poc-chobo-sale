@@ -27,6 +27,39 @@ class PurchasesTest extends TestCase
         $this->assertSame(0, $material->movements()->count());
     }
 
+    public function test_add_material_button_opens_a_modal_that_closes_after_saving(): void
+    {
+        Livewire::test(RawMaterials::class)
+            ->assertSeeHtml('wire:click="openCreate"')
+            ->assertDontSeeHtml('id="create-title"')
+            ->call('openCreate')
+            ->assertSet('isCreatingMaterial', true)
+            ->assertSeeHtml('id="create-title"')
+            ->set('name', 'Mani')
+            ->call('createMaterial')
+            ->assertHasNoErrors()
+            ->assertSet('isCreatingMaterial', false)
+            ->assertSet('name', '')
+            ->assertDontSeeHtml('id="create-title"');
+
+        $this->assertSame(['Mani'], RawMaterial::pluck('name')->all());
+    }
+
+    public function test_add_material_modal_stays_open_on_validation_error(): void
+    {
+        Livewire::test(RawMaterials::class)
+            ->call('openCreate')
+            ->set('name', '')
+            ->call('createMaterial')
+            ->assertHasErrors(['name' => 'required'])
+            ->assertSet('isCreatingMaterial', true)
+            ->call('closeCreate')
+            ->assertSet('isCreatingMaterial', false)
+            ->assertHasNoErrors();
+
+        $this->assertSame(0, RawMaterial::count());
+    }
+
     public function test_raw_material_name_is_required_and_unique(): void
     {
         RawMaterial::create(['name' => 'Banano', 'unit' => 'unidad']);

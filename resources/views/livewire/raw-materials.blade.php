@@ -101,17 +101,10 @@
                 <h2>Catálogo de insumos</h2>
                 <p>{{ $materials->total() }} {{ $materials->total() === 1 ? 'insumo registrado' : 'insumos registrados' }}</p>
             </div>
+            <button type="button" class="btn btn-primary btn-sm" wire:click="openCreate" aria-haspopup="dialog">Agregar insumo</button>
         </div>
         <div class="panel-body">
-            <form class="inline-form" wire:submit="createMaterial">
-                <div class="form-group">
-                    <label for="material-name">Nuevo insumo</label>
-                    <input id="material-name" class="input" wire:model="name" placeholder="Ej. Chocolate para cobertura">
-                    @error('name') <span class="field-error">{{ $message }}</span> @enderror
-                </div>
-                <button class="btn btn-primary" type="submit" wire:loading.attr="disabled">Agregar insumo</button>
-            </form>
-            <div class="search-box" style="margin-top:14px">
+            <div class="search-box">
                 <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
                 <input type="search" class="input" wire:model.live.debounce.300ms="search" placeholder="Buscar insumo…">
             </div>
@@ -140,6 +133,31 @@
             <div class="panel-body pagination-wrap">{{ $materials->links() }}</div>
         @endif
     </section>
+
+    @if ($isCreatingMaterial)
+        <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="create-title" wire:click.self="closeCreate">
+            <form class="modal" wire:submit="createMaterial">
+                <div class="modal-head">
+                    <div>
+                        <h2 id="create-title">Agregar insumo</h2>
+                        <p>Registra el insumo por su nombre</p>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" wire:click="closeCreate" aria-label="Cerrar">Cerrar</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="material-name">Nombre</label>
+                        <input id="material-name" type="text" class="input" wire:model="name" placeholder="Ej. Chocolate para cobertura" autofocus>
+                        @error('name') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" wire:click="closeCreate">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">Guardar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    @endif
 
     @if ($editMaterialId && $editingMaterial)
         <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="edit-title" wire:click.self="closeEdit">
