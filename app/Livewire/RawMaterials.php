@@ -2,9 +2,10 @@
 
 namespace App\Livewire;
 
+use App\Models\Purchase;
 use App\Models\RawMaterial;
-use App\Services\RawMaterialStockService;
 use App\Support\Money;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -21,43 +22,28 @@ class RawMaterials extends Component
 
     public string $name = '';
 
-    public string $unit = 'unidad';
-
-    public string $minimumStock = '10';
-
-    public string $initialQuantity = '0';
-
-    public string $initialUnitCost = '0';
-
-    public ?int $detailMaterialId = null;
-
-    public ?int $restockMaterialId = null;
-
-    public string $restockQuantity = '';
-
-    public string $restockUnitCost = '';
-
-    public string $restockNotes = '';
-
     public ?int $editMaterialId = null;
 
     public string $editName = '';
 
-    public string $editUnit = 'unidad';
+    public string $purchasedAt = '';
 
-    public string $editStockQuantity = '';
+    public string $purchaseTotal = '';
 
-    public string $editUnitCost = '';
+    /** @var array<int, int|string> */
+    public array $purchaseMaterialIds = [];
 
-    public string $editMinimumStock = '';
+    public string $purchaseNotes = '';
 
-    public function updatedSearch(): void
+    public function mount(): void
     {
-        $this->resetPage();
+        $this->purchasedAt = today()->format('Y-m-d');
     }
 
-    public function createMaterial(RawMaterialStockService $stockService): void
+    public function createMaterial(): void
     {
+        $this->name = trim($this->name);
+
         $validated = $this->validate([
             'name' => [
                 'required',
@@ -65,99 +51,37 @@ class RawMaterials extends Component
                 'max:120',
                 Rule::unique('raw_materials', 'name')->whereNull('deleted_at'),
             ],
-            'unit' => ['required', Rule::in(RawMaterial::UNITS)],
-            'minimumStock' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
-            'initialQuantity' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
-            'initialUnitCost' => ['required', 'numeric', 'min:0'],
         ], [
-            'name.required' => 'Escribe el nombre de la materia prima.',
-            'name.unique' => 'Ya existe una materia prima con ese nombre.',
-            'unit.in' => 'Selecciona una unidad válida.',
-            'minimumStock.decimal' => 'Usa como máximo dos decimales.',
-            'initialQuantity.decimal' => 'Usa como máximo dos decimales.',
+            'name.required' => 'El nombre del insumo es obligatorio.',
+            'name.unique' => 'Ya existe un insumo con ese nombre.',
         ]);
 
-        $initialUnitCostCents = Money::fromDecimal($validated['initialUnitCost']);
-
-        $material = RawMaterial::create([
-            'name' => trim($validated['name']),
-            'unit' => trim($validated['unit']),
-            'minimum_stock' => $validated['minimumStock'],
-            'unit_cost_cents' => $initialUnitCostCents,
+        RawMaterial::create([
+            'name' => $validated['name'],
+            'unit' => 'unidad',
         ]);
 
-        if ((float) $validated['initialQuantity'] > 0) {
-            $stockService->receive(
-                $material,
-                (float) $validated['initialQuantity'],
-                $initialUnitCostCents,
-                'Inventario inicial',
-            );
-        }
-
-        $this->reset('name', 'initialQuantity', 'initialUnitCost');
-        $this->initialQuantity = '0';
-        $this->initialUnitCost = '0';
-        session()->flash('success', 'Materia prima agregada correctamente.');
-    }
-
-    /**
-     * Opening the detail closes any other modal so panels never stack.
-     */
-    public function openDetail(int $materialId): void
-    {
-        $material = RawMaterial::findOrFail($materialId);
-
-        $this->closeEdit();
-        $this->closeRestock();
-        $this->detailMaterialId = $material->id;
-    }
-
-    public function closeDetail(): void
-    {
-        $this->detailMaterialId = null;
-    }
-
-    public function closeEdit(): void
-    {
-        $this->reset('editMaterialId', 'editName', 'editUnit', 'editStockQuantity', 'editUnitCost', 'editMinimumStock');
-        $this->resetValidation();
-    }
-
-    public function closeRestock(): void
-    {
-        $this->reset('restockMaterialId', 'restockQuantity', 'restockUnitCost', 'restockNotes');
-        $this->resetValidation();
-    }
-
-    public function openRestock(int $materialId): void
-    {
-        $material = RawMaterial::findOrFail($materialId);
-        $this->detailMaterialId = null;
-        $this->restockMaterialId = $material->id;
-        $this->restockUnitCost = number_format($material->unit_cost_cents / 100, 2, '.', '');
-        $this->restockQuantity = '';
-        $this->restockNotes = '';
-        $this->resetValidation();
+        $this->reset('name');
+        session()->flash('success', 'Insumo agregado correctamente.');
     }
 
     public function openEdit(int $materialId): void
     {
         $material = RawMaterial::findOrFail($materialId);
-        $this->detailMaterialId = null;
         $this->editMaterialId = $material->id;
         $this->editName = $material->name;
-        $this->editUnit = $material->unit;
-        $this->editStockQuantity = number_format((float) $material->stock_quantity, 2, '.', '');
-        $this->editUnitCost = number_format($material->unit_cost_cents / 100, 2, '.', '');
-        $this->editMinimumStock = number_format((float) $material->minimum_stock, 2, '.', '');
+        $this->resetValidation();
+    }
+
+    public function closeEdit(): void
+    {
+        $this->reset('editMaterialId', 'editName');
         $this->resetValidation();
     }
 
     public function updateMaterial(): void
     {
         $this->editName = trim($this->editName);
-        $this->editUnit = trim($this->editUnit);
 
         $validated = $this->validate([
             'editMaterialId' => [
@@ -172,54 +96,66 @@ class RawMaterials extends Component
                     ->ignore($this->editMaterialId)
                     ->whereNull('deleted_at'),
             ],
-            'editUnit' => ['required', Rule::in(RawMaterial::UNITS)],
-            'editStockQuantity' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
-            'editUnitCost' => ['required', 'numeric', 'min:0'],
-            'editMinimumStock' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
         ], [
-            'editName.required' => 'Escribe el nombre de la materia prima.',
-            'editName.unique' => 'Ya existe una materia prima con ese nombre.',
-            'editUnit.in' => 'Selecciona una unidad válida.',
-            'editStockQuantity.min' => 'La existencia no puede ser negativa.',
-            'editStockQuantity.decimal' => 'Usa como máximo dos decimales.',
-            'editMinimumStock.min' => 'El nivel mínimo no puede ser negativo.',
-            'editMinimumStock.decimal' => 'Usa como máximo dos decimales.',
+            'editName.required' => 'El nombre del insumo es obligatorio.',
+            'editName.unique' => 'Ya existe un insumo con ese nombre.',
         ]);
 
-        $material = RawMaterial::findOrFail($validated['editMaterialId']);
-        $material->update([
+        RawMaterial::findOrFail($validated['editMaterialId'])->update([
             'name' => $validated['editName'],
-            'unit' => $validated['editUnit'],
-            'stock_quantity' => number_format((float) $validated['editStockQuantity'], 3, '.', ''),
-            'unit_cost_cents' => Money::fromDecimal($validated['editUnitCost']),
-            'minimum_stock' => $validated['editMinimumStock'],
         ]);
 
         $this->closeEdit();
-        session()->flash('success', 'Materia prima actualizada correctamente.');
+        session()->flash('success', 'Insumo actualizado correctamente.');
     }
 
-    public function restock(RawMaterialStockService $stockService): void
+    public function createPurchase(): void
     {
         $validated = $this->validate([
-            'restockMaterialId' => ['required', 'exists:raw_materials,id'],
-            'restockQuantity' => ['required', 'numeric', 'gt:0', 'decimal:0,2'],
-            'restockUnitCost' => ['required', 'numeric', 'min:0'],
-            'restockNotes' => ['nullable', 'string', 'max:500'],
+            'purchasedAt' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'purchaseTotal' => ['required', 'numeric', 'gt:0', 'decimal:0,2'],
+            'purchaseMaterialIds' => ['array'],
+            'purchaseMaterialIds.*' => [
+                'integer',
+                'distinct',
+                Rule::exists('raw_materials', 'id')->whereNull('deleted_at'),
+            ],
+            'purchaseNotes' => ['nullable', 'string', 'max:500'],
         ], [
-            'restockQuantity.gt' => 'La cantidad debe ser mayor que cero.',
-            'restockQuantity.decimal' => 'Usa como máximo dos decimales.',
+            'purchasedAt.required' => 'La fecha de compra es obligatoria.',
+            'purchasedAt.date_format' => 'La fecha de compra no es válida.',
+            'purchasedAt.before_or_equal' => 'La fecha de compra no puede ser futura.',
+            'purchaseTotal.required' => 'Ingresa el total gastado.',
+            'purchaseTotal.gt' => 'El total debe ser mayor que cero.',
+            'purchaseTotal.decimal' => 'Usa como máximo dos decimales.',
+            'purchaseMaterialIds.*.exists' => 'Uno de los insumos seleccionados no existe.',
         ]);
 
-        $stockService->receive(
-            RawMaterial::findOrFail($validated['restockMaterialId']),
-            (float) $validated['restockQuantity'],
-            Money::fromDecimal($validated['restockUnitCost']),
-            $validated['restockNotes'] ?: null,
-        );
+        DB::transaction(function () use ($validated): void {
+            $purchase = Purchase::create([
+                'purchased_at' => $validated['purchasedAt'],
+                'total_cents' => Money::fromDecimal($validated['purchaseTotal']),
+                'notes' => trim($validated['purchaseNotes'] ?? '') ?: null,
+            ]);
 
-        $this->reset('restockMaterialId', 'restockQuantity', 'restockUnitCost', 'restockNotes');
-        session()->flash('success', 'Entrada de inventario registrada.');
+            $purchase->rawMaterials()->sync(array_map('intval', $validated['purchaseMaterialIds']));
+        });
+
+        $this->reset('purchaseTotal', 'purchaseMaterialIds', 'purchaseNotes');
+        $this->purchasedAt = today()->format('Y-m-d');
+        session()->flash('success', 'Compra registrada correctamente.');
+    }
+
+    public function deletePurchase(int $purchaseId): void
+    {
+        Purchase::findOrFail($purchaseId)->delete();
+
+        session()->flash('success', 'Compra eliminada.');
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->resetPage('materialsPage');
     }
 
     public function render()
@@ -227,15 +163,20 @@ class RawMaterials extends Component
         return view('livewire.raw-materials', [
             'materials' => RawMaterial::query()
                 ->when($this->search, fn ($query) => $query->where('name', 'like', "%{$this->search}%"))
-                ->with(['movements' => fn ($query) => $query->latest('occurred_at')->limit(1)])
                 ->orderBy('name')
-                ->paginate(10),
-            'detailMaterial' => $this->detailMaterialId
-                ? RawMaterial::find($this->detailMaterialId)
-                : null,
-            'selectedMaterial' => $this->restockMaterialId
-                ? RawMaterial::find($this->restockMaterialId)
-                : null,
+                ->paginate(15, pageName: 'materialsPage'),
+            'checklistMaterials' => RawMaterial::query()
+                ->where('active', true)
+                ->orderBy('name')
+                ->get(),
+            'purchases' => Purchase::query()
+                ->with(['rawMaterials' => fn ($query) => $query->orderBy('name')])
+                ->latest('purchased_at')
+                ->latest('id')
+                ->paginate(10, pageName: 'purchasesPage'),
+            'monthSpentCents' => (int) Purchase::query()
+                ->whereBetween('purchased_at', [today()->startOfMonth(), today()->endOfMonth()])
+                ->sum('total_cents'),
             'editingMaterial' => $this->editMaterialId
                 ? RawMaterial::find($this->editMaterialId)
                 : null,

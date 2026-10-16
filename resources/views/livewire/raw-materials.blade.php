@@ -2,8 +2,8 @@
     <header class="page-header">
         <div>
             <p class="eyebrow">Abastecimiento</p>
-            <h1>Materias primas</h1>
-            <p class="page-description">Controla cantidades, costos promedio y niveles mínimos de cada insumo.</p>
+            <h1>Materias primas y compras</h1>
+            <p class="page-description">Registra cuánto gastaste en cada compra y marca los insumos que compraste.</p>
         </div>
     </header>
 
@@ -11,51 +11,51 @@
         <aside class="panel">
             <div class="panel-header">
                 <div>
-                    <h2>Nueva materia prima</h2>
-                    <p>Registra el insumo y su inventario inicial</p>
+                    <h2>Registrar compra</h2>
+                    <p>Total gastado y checklist de insumos</p>
                 </div>
             </div>
-            <form class="panel-body" wire:submit="createMaterial">
+            <form class="panel-body" wire:submit="createPurchase">
                 <div class="form-grid">
-                    <div class="form-group full">
-                        <label for="material-name">Nombre</label>
-                        <input id="material-name" class="input" wire:model="name" placeholder="Ej. Chocolate para cobertura">
-                        @error('name') <span class="field-error">{{ $message }}</span> @enderror
+                    <div class="form-group">
+                        <label for="purchase-date">Fecha</label>
+                        <input id="purchase-date" type="date" class="input" wire:model="purchasedAt" max="{{ today()->format('Y-m-d') }}">
+                        @error('purchasedAt') <span class="field-error">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
-                        <label for="unit">Unidad</label>
-                        <select id="unit" class="select" wire:model="unit">
-                            <option value="unidad">Unidad</option>
-                            <option value="gramos">Gramos</option>
-                            <option value="kilogramos">Kilogramos</option>
-                            <option value="mililitros">Mililitros</option>
-                            <option value="paquete">Paquete</option>
-                            <option value="libra">Libra</option>
-                            <option value="onzas">Onzas</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="minimum">Nivel mínimo</label>
-                        <input id="minimum" type="number" min="0" step="0.01" class="input" wire:model="minimumStock">
-                        @error('minimumStock') <span class="field-error">{{ $message }}</span> @enderror
-                    </div>
-                    <div class="form-group">
-                        <label for="initial-quantity">Cantidad inicial</label>
-                        <input id="initial-quantity" type="number" min="0" step="0.01" class="input" wire:model="initialQuantity">
-                        @error('initialQuantity') <span class="field-error">{{ $message }}</span> @enderror
-                    </div>
-                    <div class="form-group">
-                        <label for="initial-cost">Costo por unidad</label>
+                        <label for="purchase-total">Total gastado</label>
                         <div class="input-with-prefix">
                             <span>C$</span>
-                            <input id="initial-cost" type="number" min="0" step="0.01" class="input" wire:model="initialUnitCost">
+                            <input id="purchase-total" type="number" min="0.01" step="0.01" class="input" wire:model="purchaseTotal" placeholder="0.00">
                         </div>
+                        @error('purchaseTotal') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <fieldset class="form-group full checklist-group">
+                        <legend>Insumos comprados</legend>
+                        @if ($checklistMaterials->isEmpty())
+                            <p class="field-hint">Agrega insumos al catálogo para marcarlos aquí.</p>
+                        @else
+                            <div class="checklist">
+                                @foreach ($checklistMaterials as $material)
+                                    <label class="checklist-item" wire:key="purchase-material-{{ $material->id }}">
+                                        <input type="checkbox" value="{{ $material->id }}" wire:model="purchaseMaterialIds">
+                                        <span>{{ $material->name }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        @endif
+                        @error('purchaseMaterialIds.*') <span class="field-error">{{ $message }}</span> @enderror
+                    </fieldset>
+                    <div class="form-group full">
+                        <label for="purchase-notes">Nota opcional</label>
+                        <textarea id="purchase-notes" class="textarea" wire:model="purchaseNotes" placeholder="Ej. 5 docenas de bananos y 3 bolsas de chocolate"></textarea>
+                        @error('purchaseNotes') <span class="field-error">{{ $message }}</span> @enderror
                     </div>
                 </div>
                 <div class="form-actions">
                     <button class="btn btn-primary" type="submit" wire:loading.attr="disabled">
-                        <span wire:loading.remove wire:target="createMaterial">Guardar insumo</span>
-                        <span wire:loading wire:target="createMaterial">Guardando…</span>
+                        <span wire:loading.remove wire:target="createPurchase">Guardar compra</span>
+                        <span wire:loading wire:target="createPurchase">Guardando…</span>
                     </button>
                 </div>
             </form>
@@ -64,173 +64,98 @@
         <section class="panel">
             <div class="panel-header">
                 <div>
-                    <h2>Inventario de insumos</h2>
-                    <p>{{ $materials->total() }} materias primas registradas</p>
+                    <h2>Historial de compras</h2>
+                    <p>Gastado este mes: {{ \App\Support\Money::format($monthSpentCents) }}</p>
                 </div>
-            </div>
-            <div class="panel-body" style="padding-bottom:10px">
-                <div class="search-box">
-                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-                    <input type="search" class="input" wire:model.live.debounce.300ms="search" placeholder="Buscar materia prima…">
-                </div>
+                <span class="badge neutral">{{ $purchases->total() }} compras</span>
             </div>
             <ul class="material-list" role="list">
-                @forelse ($materials as $material)
-                    @php
-                        $isLow = $material->isLowStock();
-                        $target = max((float) $material->minimum_stock * 2, 1);
-                        $progress = min(100, ((float) $material->stock_quantity / $target) * 100);
-                        $stockLabel = number_format($material->stock_quantity, 2).' '.$material->unit;
-                        $progressWidth = ['width: '.$progress.'%'];
-                        $minimumLabel = number_format($material->minimum_stock, 2).' '.$material->unit;
-                        $rowLabel = 'Ver detalle de '.$material->name.': '.$stockLabel.' en existencia, mínimo '.$minimumLabel;
-                    @endphp
-                    <li wire:key="material-{{ $material->id }}">
-                        <button type="button"
-                                class="material-row"
-                                wire:click="openDetail({{ $material->id }})"
-                                aria-haspopup="dialog"
-                                aria-label="{{ $rowLabel }}">
+                @forelse ($purchases as $purchase)
+                    <li wire:key="purchase-{{ $purchase->id }}">
+                        <div class="material-row is-static">
                             <span class="material-row-main">
-                                <strong>{{ $material->name }}</strong>
-                                <small>Mínimo: {{ $minimumLabel }}</small>
+                                <strong>{{ $purchase->rawMaterials->isEmpty() ? 'Sin insumos marcados' : $purchase->rawMaterials->pluck('name')->join(', ') }}</strong>
+                                <small>{{ $purchase->purchased_at->translatedFormat('d M Y') }}@if ($purchase->notes) · {{ $purchase->notes }}@endif</small>
                             </span>
                             <span class="material-row-stock">
-                                <span class="badge {{ $isLow ? 'danger' : 'success' }}">{{ $stockLabel }}</span>
-                                <span @class(['progress', 'is-low' => $isLow]) aria-hidden="true">
-                                    <span @style($progressWidth)></span>
-                                </span>
+                                <span class="badge warning">{{ \App\Support\Money::format($purchase->total_cents) }}</span>
+                                <button type="button" class="btn btn-secondary btn-sm"
+                                        wire:click="deletePurchase({{ $purchase->id }})"
+                                        wire:confirm="¿Eliminar esta compra?">Eliminar</button>
                             </span>
-                        </button>
+                        </div>
                     </li>
                 @empty
-                    <li><div class="empty-state"><strong>No se encontraron insumos</strong><p>Agrega una materia prima usando el formulario.</p></div></li>
+                    <li><div class="empty-state"><strong>Todavía no registras compras</strong><p>Usa el formulario para anotar lo que gastaste.</p></div></li>
                 @endforelse
             </ul>
-            <div class="panel-body pagination-wrap">{{ $materials->links() }}</div>
+            <div class="panel-body pagination-wrap">{{ $purchases->links() }}</div>
         </section>
     </div>
 
-    @if ($detailMaterialId && $detailMaterial)
-        <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="detail-title" wire:click.self="closeDetail">
-            <div class="modal">
-                <div class="modal-head">
-                    <div>
-                        <h2 id="detail-title">Detalle de la materia prima</h2>
-                        <p>{{ $detailMaterial->name }}</p>
-                    </div>
-                    <button type="button" class="btn btn-secondary btn-sm" wire:click="closeDetail" aria-label="Cerrar">Cerrar</button>
-                </div>
-                <div class="modal-body">
-                    <dl class="mobile-data-grid">
-                        <div>
-                            <dt>Existencia</dt>
-                            <dd>{{ number_format($detailMaterial->stock_quantity, 2) }} {{ $detailMaterial->unit }}</dd>
-                        </div>
-                        <div>
-                            <dt>Nivel mínimo</dt>
-                            <dd>{{ number_format($detailMaterial->minimum_stock, 2) }} {{ $detailMaterial->unit }}</dd>
-                        </div>
-                        <div>
-                            <dt>Costo unitario</dt>
-                            <dd>{{ \App\Support\Money::format($detailMaterial->unit_cost_cents) }}</dd>
-                        </div>
-                    </dl>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" wire:click="openEdit({{ $detailMaterial->id }})">Editar</button>
-                        <button type="button" class="btn btn-primary" wire:click="openRestock({{ $detailMaterial->id }})">Agregar entrada</button>
-                    </div>
-                </div>
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Catálogo de insumos</h2>
+                <p>{{ $materials->total() }} insumos registrados</p>
             </div>
         </div>
-    @endif
+        <div class="panel-body">
+            <form class="inline-form" wire:submit="createMaterial">
+                <div class="form-group">
+                    <label for="material-name">Nuevo insumo</label>
+                    <input id="material-name" class="input" wire:model="name" placeholder="Ej. Chocolate para cobertura">
+                    @error('name') <span class="field-error">{{ $message }}</span> @enderror
+                </div>
+                <button class="btn btn-primary" type="submit" wire:loading.attr="disabled">Agregar insumo</button>
+            </form>
+            <div class="search-box" style="margin-top:14px">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                <input type="search" class="input" wire:model.live.debounce.300ms="search" placeholder="Buscar insumo…">
+            </div>
+        </div>
+        <ul class="material-list" role="list">
+            @forelse ($materials as $material)
+                <li wire:key="material-{{ $material->id }}">
+                    <button type="button"
+                            class="material-row"
+                            wire:click="openEdit({{ $material->id }})"
+                            aria-haspopup="dialog"
+                            aria-label="Editar {{ $material->name }}">
+                        <span class="material-row-main">
+                            <strong>{{ $material->name }}</strong>
+                        </span>
+                        <span class="material-row-stock">
+                            <span class="badge neutral">Editar</span>
+                        </span>
+                    </button>
+                </li>
+            @empty
+                <li><div class="empty-state"><strong>No se encontraron insumos</strong><p>Agrega un insumo por su nombre.</p></div></li>
+            @endforelse
+        </ul>
+        <div class="panel-body pagination-wrap">{{ $materials->links() }}</div>
+    </section>
 
     @if ($editMaterialId && $editingMaterial)
         <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="edit-title" wire:click.self="closeEdit">
             <form class="modal" wire:submit="updateMaterial">
                 <div class="modal-head">
                     <div>
-                        <h2 id="edit-title">Editar materia prima</h2>
-                        <p>{{ $editingMaterial->name }} · {{ number_format($editingMaterial->stock_quantity, 2) }} {{ $editingMaterial->unit }} actuales</p>
+                        <h2 id="edit-title">Editar insumo</h2>
+                        <p>{{ $editingMaterial->name }}</p>
                     </div>
                     <button type="button" class="btn btn-secondary btn-sm" wire:click="closeEdit" aria-label="Cerrar">Cerrar</button>
                 </div>
                 <div class="modal-body">
-                    <div class="form-grid">
-                        <div class="form-group full">
-                            <label for="edit-name">Nombre</label>
-                            <input id="edit-name" class="input" wire:model="editName" autofocus>
-                            @error('editName') <span class="field-error">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="form-group">
-                            <label for="edit-unit">Unidad</label>
-                            <select id="edit-unit" class="select" wire:model="editUnit">
-                                @foreach (\App\Models\RawMaterial::UNITS as $availableUnit)
-                                    <option value="{{ $availableUnit }}">{{ ucfirst($availableUnit) }}</option>
-                                @endforeach
-                            </select>
-                            @error('editUnit') <span class="field-error">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="form-group">
-                            <label for="edit-stock-quantity">Existencia actual</label>
-                            <input id="edit-stock-quantity" type="number" min="0" step="0.01" class="input" wire:model="editStockQuantity">
-                            @error('editStockQuantity') <span class="field-error">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="form-group">
-                            <label for="edit-unit-cost">Costo por unidad</label>
-                            <div class="input-with-prefix">
-                                <span>C$</span>
-                                <input id="edit-unit-cost" type="number" min="0" step="0.01" class="input" wire:model="editUnitCost">
-                            </div>
-                            @error('editUnitCost') <span class="field-error">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="form-group">
-                            <label for="edit-minimum">Nivel mínimo</label>
-                            <input id="edit-minimum" type="number" min="0" step="0.01" class="input" wire:model="editMinimumStock">
-                            @error('editMinimumStock') <span class="field-error">{{ $message }}</span> @enderror
-                        </div>
+                    <div class="form-group">
+                        <label for="edit-name">Nombre</label>
+                        <input id="edit-name" class="input" wire:model="editName" autofocus>
+                        @error('editName') <span class="field-error">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" wire:click="closeEdit">Cancelar</button>
                         <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">Guardar cambios</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    @endif
-
-    @if ($restockMaterialId && $selectedMaterial)
-        <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="restock-title" wire:click.self="closeRestock">
-            <form class="modal" wire:submit="restock">
-                <div class="modal-head">
-                    <div>
-                        <h2 id="restock-title">Agregar entrada</h2>
-                        <p>{{ $selectedMaterial->name }} · {{ number_format($selectedMaterial->stock_quantity, 2) }} {{ $selectedMaterial->unit }} actuales</p>
-                    </div>
-                    <button type="button" class="btn btn-secondary btn-sm" wire:click="closeRestock" aria-label="Cerrar">Cerrar</button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="restock-quantity">Cantidad recibida</label>
-                            <input id="restock-quantity" type="number" min="0.01" step="0.01" class="input" wire:model="restockQuantity" autofocus>
-                            @error('restockQuantity') <span class="field-error">{{ $message }}</span> @enderror
-                        </div>
-                        <div class="form-group">
-                            <label for="restock-cost">Costo por {{ $selectedMaterial->unit }}</label>
-                            <div class="input-with-prefix">
-                                <span>C$</span>
-                                <input id="restock-cost" type="number" min="0" step="0.01" class="input" wire:model="restockUnitCost">
-                            </div>
-                        </div>
-                        <div class="form-group full">
-                            <label for="restock-notes">Nota opcional</label>
-                            <textarea id="restock-notes" class="textarea" wire:model="restockNotes" placeholder="Proveedor, factura o comentario…"></textarea>
-                        </div>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" wire:click="closeRestock">Cancelar</button>
-                        <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">Registrar entrada</button>
                     </div>
                 </div>
             </form>

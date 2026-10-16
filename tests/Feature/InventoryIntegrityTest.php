@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Livewire\Products;
-use App\Livewire\RawMaterials;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\RawMaterial;
@@ -31,75 +30,6 @@ class InventoryIntegrityTest extends TestCase
         return Product::create(['name' => 'Chocobanano '.$sku, 'slug' => 'chocobanano-'.strtolower($sku)])
             ->variants()
             ->create(['name' => $name, 'sku' => $sku, 'price_cents' => 2000]);
-    }
-
-    public function test_initial_unit_cost_is_persisted_when_initial_quantity_is_zero(): void
-    {
-        Livewire::test(RawMaterials::class)
-            ->set('name', 'Chocolate')
-            ->set('unit', 'kg')
-            ->set('minimumStock', '2')
-            ->set('initialQuantity', '0')
-            ->set('initialUnitCost', '12.50')
-            ->call('createMaterial')
-            ->assertHasNoErrors();
-
-        $this->assertDatabaseHas('raw_materials', [
-            'name' => 'Chocolate',
-            'unit_cost_cents' => 1250,
-        ]);
-
-        $material = RawMaterial::where('name', 'Chocolate')->firstOrFail();
-        $this->assertEquals(0, $material->stock_quantity);
-        $this->assertSame(0, $material->movements()->count());
-    }
-
-    public function test_zero_quantity_initial_cost_becomes_the_restock_default(): void
-    {
-        Livewire::test(RawMaterials::class)
-            ->set('name', 'Chocolate')
-            ->set('unit', 'kg')
-            ->set('minimumStock', '2')
-            ->set('initialQuantity', '0')
-            ->set('initialUnitCost', '12.50')
-            ->call('createMaterial')
-            ->assertHasNoErrors();
-
-        $material = RawMaterial::where('name', 'Chocolate')->firstOrFail();
-
-        Livewire::test(RawMaterials::class)
-            ->call('openRestock', $material->id)
-            ->assertSet('restockUnitCost', '12.50');
-    }
-
-    public function test_positive_initial_quantity_still_registers_the_weighted_average_entry(): void
-    {
-        Livewire::test(RawMaterials::class)
-            ->set('name', 'Banano')
-            ->set('unit', 'unidad')
-            ->set('minimumStock', '2')
-            ->set('initialQuantity', '5')
-            ->set('initialUnitCost', '3.00')
-            ->call('createMaterial')
-            ->assertHasNoErrors();
-
-        $material = RawMaterial::where('name', 'Banano')->firstOrFail();
-        $this->assertEquals(5, $material->stock_quantity);
-        $this->assertSame(300, $material->unit_cost_cents);
-        $this->assertDatabaseHas('raw_material_movements', [
-            'raw_material_id' => $material->id,
-            'type' => 'purchase',
-            'unit_cost_cents' => 300,
-        ]);
-
-        Livewire::test(RawMaterials::class)
-            ->set('restockMaterialId', $material->id)
-            ->set('restockQuantity', '5')
-            ->set('restockUnitCost', '5.00')
-            ->call('restock')
-            ->assertHasNoErrors();
-
-        $this->assertSame(400, $material->fresh()->unit_cost_cents);
     }
 
     public function test_inactive_material_used_by_a_recipe_is_visible_and_marked_inactive(): void

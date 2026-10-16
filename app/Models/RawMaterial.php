@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -48,6 +49,11 @@ class RawMaterial extends Model
     public function movements(): HasMany
     {
         return $this->hasMany(RawMaterialMovement::class);
+    }
+
+    public function purchases(): BelongsToMany
+    {
+        return $this->belongsToMany(Purchase::class);
     }
 
     public function isLowStock(): bool
